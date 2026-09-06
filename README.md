@@ -14,10 +14,10 @@ A retro arcade game reimagined with a cyberpunk aesthetic, built in **JavaScript
 * 💾 Automatic save
 * 🔊 Original cyberpunk sound design
 
-## Play
+## 🎮 Play Now
 
-Coming soon on GitHub Pages.
-
+Play in your browser:
+https://fcardoso-dev.github.io/snake-cyberpunk/
 ---
 
 Developed by **Fernando Cardoso**.
