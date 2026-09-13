@@ -60897,7 +60897,6 @@
  *   // frameCount.
  *   textSize(30);
  *   textAlign(CENTER, CENTER);
- *   text(frameCount, 50, 50);
  *
  *   describe('The number 0 written in black in the middle of a gray square.');
  * }
@@ -60917,13 +60916,11 @@
  *
  *   describe('A number written in black in the middle of a gray square. Its value increases rapidly.');
  * }
- *
  * function draw() {
  *   background(200);
  *
  *   // Display the value of
  *   // frameCount.
- *   text(frameCount, 50, 50);
  * }
  * </code>
  * </div>

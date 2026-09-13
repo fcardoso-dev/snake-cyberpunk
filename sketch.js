@@ -603,36 +603,7 @@ function updateParticles() {
   drawingContext.shadowBlur = 0;
 
 }
-function buySkin(skin) {
 
-  // Já desbloqueada
-  if (unlockedSkins.includes(skin.id)) {
-    return;
-  }
-
-  // Saldo insuficiente
-  if (coins < skin.price) {
-    return;
-  }
-
-  // Compra
-  coins -= skin.price;
-  unlockedSkins.push(skin.id);
-
-  // Equipa automaticamente após comprar
-  currentSkin = skin.id;
-
-  saveGame();
-}
-
-function equipSkin(skin) {
-
-  if (!unlockedSkins.includes(skin.id)) return;
-
-  currentSkin = skin.id;
-
-  saveGame();
-}
 function saveGame() {
 
   localStorage.setItem(
@@ -704,18 +675,23 @@ if(savedAchievements !== null){
 }
 
 }
-function unlockAchievement(id, title){
+function unlockAchievement(id, title) {
 
-  if(achievements[id]) return;
+  // Já desbloqueada? Sai fora.
+  if (achievements[id]) return;
 
   achievements[id] = true;
 
+  // Popup
   achievementPopup = title;
+  achievementTimer = 180; // 3 segundos
 
-  achievementTimer = 180;
+  // Som (se existir)
+  if (typeof sfxAchievement !== "undefined") {
+    sfxAchievement.play();
+  }
 
   saveGame();
-
 }
 function checkAchievements(){
 
@@ -747,79 +723,45 @@ function checkAchievements(){
   }
 
 }
-function drawAchievementPopup(){
+function drawAchievementPopup() {
 
-  if(!achievementPopup) return;
+  if (!achievementPopup) return;
 
   achievementTimer--;
 
-  if(achievementTimer <= 0){
-
+  if (achievementTimer <= 0) {
     achievementPopup = null;
     return;
-
   }
 
   push();
 
+  rectMode(CORNER);
+  textAlign(CENTER, CENTER);
+
+  // Glow
   drawingContext.shadowBlur = 25;
   drawingContext.shadowColor = "#FFD700";
 
-  fill(20,15,30);
-
   stroke("#FFD700");
+  strokeWeight(2);
+  fill(20, 15, 30, 245);
 
-  rect(width/2-170,40,340,70,12);
+  rect(width/2 - 170, 35, 340, 75, 12);
 
   noStroke();
 
   fill("#FFD700");
-
-  textAlign(CENTER,CENTER);
-
   textSize(15);
-
-  text(
-    "🏆 CONQUISTA DESBLOQUEADA",
-    width/2,
-    60
-  );
+  text("🏆 CONQUISTA DESBLOQUEADA", width/2, 55);
 
   fill(255);
-
   textSize(22);
-
-  text(
-    achievementPopup,
-    width/2,
-    88
-  );
+  text(achievementPopup, width/2, 82);
 
   pop();
-
 }
-function buySkin(skin) {
 
-  // Já desbloqueada
-  if (unlockedSkins.includes(skin.id)) {
-    return;
-  }
-
-  // Sem saldo
-  if (coins < skin.price) {
-    return;
-  }
-
-  // Compra
-  coins -= skin.price;
-
-  unlockedSkins.push(skin.id);
-
-  // Equipa automaticamente
-  currentSkin = skin.id;
-
-  saveGame();
-}
 function updateMenuParticles() {
 
   for (let particle of menuParticles) {
