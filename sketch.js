@@ -3,7 +3,7 @@
 // PARTE 1
 // =========================
 
-let gameState = "menu";"skins";"bootFinished"
+let gameState = "menu";
 let bootProgress = 0;
 let bootFinished = false;
 let snake;
@@ -39,6 +39,22 @@ let sfxLegendary;
 let sfxShield;
 let sfxGameOver;
 let bgMusic;
+let debugMode = true;
+let forceLegendary = false;
+// =========================
+// ACHIEVEMENTS
+// =========================
+
+let achievements = {
+
+  firstBlood: false,
+  luckyOne: false,
+  richHacker: false,
+  neonMaster: false
+
+};
+let achievementPopup = null;
+let achievementTimer = 0;
 let skinCards = [
 
   {
@@ -639,6 +655,10 @@ function saveGame() {
     JSON.stringify(unlockedSkins)
   );
 
+  localStorage.setItem(
+  "snakeAchievements",
+  JSON.stringify(achievements)
+);
 }
 function loadGame() {
 
@@ -651,6 +671,15 @@ function loadGame() {
   let savedSkin =
     localStorage.getItem("snakeSkin");
 
+    let savedAchievements =
+  localStorage.getItem("snakeAchievements");
+
+if(savedAchievements !== null){
+
+  achievements =
+    JSON.parse(savedAchievements);
+
+}
   let savedUnlockedSkins =
     localStorage.getItem("snakeUnlockedSkins");
 
@@ -673,6 +702,100 @@ function loadGame() {
     unlockedSkins = ["neonBlue"];
   }
 }
+
+}
+function unlockAchievement(id, title){
+
+  if(achievements[id]) return;
+
+  achievements[id] = true;
+
+  achievementPopup = title;
+
+  achievementTimer = 180;
+
+  saveGame();
+
+}
+function checkAchievements(){
+
+  if(score >= 100){
+
+    unlockAchievement(
+      "firstBlood",
+      "FIRST BLOOD"
+    );
+
+  }
+
+  if(coins >= 1000){
+
+    unlockAchievement(
+      "richHacker",
+      "RICH HACKER"
+    );
+
+  }
+
+  if(unlockedSkins.length === skinCards.length){
+
+    unlockAchievement(
+      "neonMaster",
+      "NEON MASTER"
+    );
+
+  }
+
+}
+function drawAchievementPopup(){
+
+  if(!achievementPopup) return;
+
+  achievementTimer--;
+
+  if(achievementTimer <= 0){
+
+    achievementPopup = null;
+    return;
+
+  }
+
+  push();
+
+  drawingContext.shadowBlur = 25;
+  drawingContext.shadowColor = "#FFD700";
+
+  fill(20,15,30);
+
+  stroke("#FFD700");
+
+  rect(width/2-170,40,340,70,12);
+
+  noStroke();
+
+  fill("#FFD700");
+
+  textAlign(CENTER,CENTER);
+
+  textSize(15);
+
+  text(
+    "🏆 CONQUISTA DESBLOQUEADA",
+    width/2,
+    60
+  );
+
+  fill(255);
+
+  textSize(22);
+
+  text(
+    achievementPopup,
+    width/2,
+    88
+  );
+
+  pop();
 
 }
 function buySkin(skin) {
@@ -809,11 +932,16 @@ sfxShield.setVolume(0.60);
 sfxGameOver.setVolume(0.75);
 }
 function startGame() {
-if (!bgMusic.isPlaying()) {
-  bgMusic.play();
-}
-  // Estado do jogo
+
+  // Música
+  if (!bgMusic.isPlaying()) {
+    bgMusic.loop();
+  }
+
+  // Estado
   gameState = "playing";
+  gameOverState = false;
+
   score = 0;
   level = 1;
 
@@ -826,7 +954,7 @@ if (!bgMusic.isPlaying()) {
   rareFood = false;
   legendaryFood = false;
 
-  // NOVO: limpa efeitos visuais
+  // Efeitos
   particles = [];
   floatingTexts = [];
   shakeIntensity = 0;
@@ -839,6 +967,9 @@ if (!bgMusic.isPlaying()) {
   createObstacle();
 
   frameRate(9);
+
+  // GARANTE QUE O DRAW VOLTE A RODAR
+  loop();
 }
 function equipSkin(skin){
 
@@ -1100,6 +1231,7 @@ function draw() {
 
 }
 
+
 function drawGame() {
 
   background(10, 0, 25);
@@ -1110,33 +1242,29 @@ function drawGame() {
   drawGrid();
   updateLevel();
 
+  // Atualiza a cobra
   snake.update();
 
   // =========================
   // MORTE
   // =========================
-
   if (snake.dead()) {
 
-    if (score > highScore) {
-      highScore = score;
-    }
+    if (score > highScore) highScore = score;
 
     saveGame();
 
-    bgMusic.stop();
+    if (bgMusic.isPlaying()) bgMusic.stop();
     sfxGameOver.play();
 
     pop();
-
     gameState = "gameover";
     return;
   }
 
   // =========================
-  // PEGAR ESCUDO
+  // ESCUDO
   // =========================
-
   if (shield) {
 
     let head = snake.body[snake.body.length - 1];
@@ -1148,33 +1276,18 @@ function drawGame() {
 
       sfxShield.play();
 
-      createParticles(
-        head.x + 10,
-        head.y + 10,
-        20,
-        color("#00E5FF")
-      );
-
-      createFloatingText(
-        head.x + 10,
-        head.y,
-        "ESCUDO",
-        color("#00E5FF")
-      );
-
+      createParticles(head.x + 10, head.y + 10, 20, color("#00E5FF"));
+      createFloatingText(head.x + 10, head.y, "ESCUDO", color("#00E5FF"));
     }
-
   }
 
-  // Spawn do escudo
   if (!shield && !shieldActive && random(200) < 1) {
     createShield();
   }
 
   // =========================
-  // COMER FRUTA
+  // FRUTA
   // =========================
-
   if (snake.eat(food)) {
 
     if (legendaryFood) {
@@ -1182,86 +1295,48 @@ function drawGame() {
       sfxLegendary.play();
       startShake(8, 10);
 
-      createParticles(
-        food.x + 10,
-        food.y + 10,
-        40,
-        color("#FFD700")
-      );
-
-      createFloatingText(
-        food.x + 10,
-        food.y,
-        "+100",
-        color("#FFD700")
-      );
-
       score += 100;
       coins += 50;
 
-    }
+      createParticles(food.x + 10, food.y + 10, 40, color("#FFD700"));
+      createFloatingText(food.x + 10, food.y, "+100", color("#FFD700"));
 
-    else if (rareFood) {
+      unlockAchievement("luckyOne", "LUCKY ONE");
+
+    } else if (rareFood) {
 
       sfxRare.play();
       startShake(4, 6);
 
-      createParticles(
-        food.x + 10,
-        food.y + 10,
-        22,
-        color("#00BFFF")
-      );
-
-      createFloatingText(
-        food.x + 10,
-        food.y,
-        "+50",
-        color("#00BFFF")
-      );
-
       score += 50;
       coins += 25;
 
-    }
+      createParticles(food.x + 10, food.y + 10, 22, color("#00BFFF"));
+      createFloatingText(food.x + 10, food.y, "+50", color("#00BFFF"));
 
-    else {
+    } else {
 
       sfxEat.play();
       startShake(2, 3);
 
-      createParticles(
-        food.x + 10,
-        food.y + 10,
-        10,
-        color("#FF00AA")
-      );
-
-      createFloatingText(
-        food.x + 10,
-        food.y,
-        "+10",
-        color("#FF00AA")
-      );
-
       score += 10;
       coins += 5;
 
+      createParticles(food.x + 10, food.y + 10, 10, color("#FF00AA"));
+      createFloatingText(food.x + 10, food.y, "+10", color("#FF00AA"));
     }
 
-    if (score > highScore) {
-      highScore = score;
-    }
+    checkAchievements();
+
+    if (score > highScore) highScore = score;
 
     saveGame();
     createFood();
-
   }
 
   // =========================
   // DESENHO
   // =========================
-
   drawObstacles();
   drawFood();
   drawShield();
@@ -1270,10 +1345,11 @@ function drawGame() {
   updateFloatingTexts();
 
   snake.show();
+
   drawHUD();
+  drawAchievementPopup();
 
   pop();
-
 }
 function mousePressed() {
 
@@ -2105,39 +2181,49 @@ function isPositionOccupied(x, y) {
 }
 function createFood() {
 
-  const gameHeight = height - HUD_HEIGHT;
+  const GAME_HEIGHT = height - HUD_HEIGHT;
 
-  const cols = floor(width / scaleSize);
-  const rows = floor(gameHeight / scaleSize);
+  let cols = floor(width / scaleSize);
+  let rows = floor(GAME_HEIGHT / scaleSize);
 
-  // Reset das raridades
+  // =========================
+  // RESET
+  // =========================
+
   rareFood = false;
   legendaryFood = false;
 
-  // ======================================
-  // CHANCES
-  // ======================================
+  // =========================
+  // DEBUG MODE
+  // Tecla L força a próxima fruta lendária
+  // =========================
 
-  const LEGENDARY_CHANCE = 3;   // 3%
-  const RARE_CHANCE = 12;       // 12%
-
-  let chance = random(100);
-
-  if (chance < LEGENDARY_CHANCE) {
+  if (forceLegendary) {
 
     legendaryFood = true;
+    forceLegendary = false;
 
-  } else if (chance < LEGENDARY_CHANCE + RARE_CHANCE) {
+  } else {
 
-    rareFood = true;
+    let chance = random(100);
+
+    if (chance < 3) {
+
+      legendaryFood = true;
+
+    } else if (chance < 15) {
+
+      rareFood = true;
+
+    }
 
   }
 
-  // ======================================
-  // SPAWN
-  // ======================================
+  // =========================
+  // GERAR POSIÇÃO
+  // =========================
 
-  for (let tentativa = 0; tentativa < 500; tentativa++) {
+  while (true) {
 
     let x = floor(random(cols)) * scaleSize;
     let y = floor(random(rows)) * scaleSize;
@@ -2342,7 +2428,42 @@ function keyPressed() {
     if (key === "0") buySkin(skinCards[9]);
 
   }
+// ======================================
+// DEBUG MODE
+// ======================================
 
+if (debugMode && gameState === "playing") {
+
+  // P = +100 Score +1000 Bits
+  if (key === "p" || key === "P") {
+
+    score += 100;
+    coins += 1000;
+
+    checkAchievements();
+    saveGame();
+
+  }
+
+  // L = força fruta lendária
+  if (key === "l" || key === "L") {
+
+    forceLegendary = true;
+    createFood();
+
+  }
+
+  // B = desbloqueia todas as skins
+  if (key === "b" || key === "B") {
+
+    unlockedSkins = skinCards.map(s => s.id);
+
+    checkAchievements();
+    saveGame();
+
+  }
+
+}
 } // ← ESTA CHAVE FECHA A keyPressed()
 
 // =========================
