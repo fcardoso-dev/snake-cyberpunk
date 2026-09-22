@@ -3,7 +3,9 @@
 // PARTE 1
 // =========================
 
-let gameState = "menu";
+let gameState = "boot";
+let bootTimer = 0;
+const BOOT_DURATION = 150; // 150 frames ≈ 2,5s
 let bootProgress = 0;
 let bootFinished = false;
 let snake;
@@ -1140,6 +1142,11 @@ function createShield() {
 }
 function draw() {
 
+  if (gameState === "boot") {
+  drawBoot();
+  return;
+}
+
   if (gameState === "menu") {
     drawMenu();
     return;
@@ -1164,6 +1171,88 @@ function draw() {
   drawStats();
   return;
 }
+}
+function drawBoot() {
+
+  background(3, 5, 12);
+
+  // Grid
+  stroke(15, 25, 40);
+
+  for (let x = 0; x < width; x += 20)
+    line(x, 0, x, height);
+
+  for (let y = 0; y < height; y += 20)
+    line(0, y, width, y);
+
+  noStroke();
+
+  bootTimer++;
+
+ // Glitch leve
+let glitch = random(-1.5, 1.5);
+
+textAlign(CENTER);
+
+// ===== GLITCH RGB =====
+fill(255, 0, 120, 70);
+textSize(60);
+text("FSC", width/2 + glitch - 2, 250);
+
+fill(0, 220, 255, 70);
+text("FSC", width/2 + glitch + 2, 250);
+
+// ===== LOGO RGB =====
+colorMode(HSB, 360, 100, 100);
+
+let hueRGB = (frameCount * 2) % 360;
+let rgbColor = color(hueRGB, 100, 100);
+
+drawingContext.shadowBlur = 35;
+drawingContext.shadowColor = rgbColor;
+
+fill(rgbColor);
+text("FSC", width/2 + glitch, 250);
+
+colorMode(RGB, 255);
+drawingContext.shadowBlur = 0;
+
+// Volta pro modo normal
+colorMode(RGB, 255);
+
+  drawingContext.shadowBlur = 15;
+  drawingContext.shadowColor = "#8B5CF6";
+
+  fill("#FFFFFF");
+  textSize(28);
+  text("STUDIOS", width/2, 295);
+
+  drawingContext.shadowBlur = 0;
+
+  fill(130);
+  textSize(14);
+  text("STUDIO INDEPENDENTE", width/2, 325);
+
+  // Barra de carregamento
+  const barW = 260;
+  const progress = constrain(bootTimer / BOOT_DURATION, 0, 1);
+
+  stroke("#334155");
+  fill(20);
+  rect(width/2 - barW/2, 380, barW, 12, 6);
+
+  noStroke();
+  fill("#00E5FF");
+  rect(width/2 - barW/2, 380, barW * progress, 12, 6);
+
+  fill(170);
+  textSize(12);
+  text("INITIALIZING...", width/2, 405);
+
+  if (bootTimer >= BOOT_DURATION) {
+    gameState = "menu";
+    bootTimer = 0;
+  }
 }
 function drawStats() {
 
