@@ -966,149 +966,107 @@ function buySkin(skin){
   saveGame();
 
 }
+function drawMenuButton(label, x, y, w, h, colorGlow, icon = "") {
 
+  const hover =
+    mouseX >= x &&
+    mouseX <= x + w &&
+    mouseY >= y &&
+    mouseY <= y + h;
+
+  drawingContext.shadowBlur = hover ? 28 : 14;
+  drawingContext.shadowColor = colorGlow;
+
+  fill(hover ? color(255, 255, 255, 35) : color(10, 18, 35));
+  stroke(colorGlow);
+  strokeWeight(2);
+
+  rect(x, y, w, h, 12);
+
+  noStroke();
+  fill(hover ? "#FFFFFF" : colorGlow);
+
+  textAlign(CENTER, CENTER);
+  textSize(hover ? 22 : 20);
+
+  text(`${icon} ${label}`, x + w/2, y + h/2 + 1);
+
+  drawingContext.shadowBlur = 0;
+
+  return hover;
+}
 function drawMenu() {
 
   background(5, 3, 15);
 
-  const gameHeight = height - HUD_HEIGHT;
+  drawGrid();
 
-  // ======================================
-  // PARTÍCULAS
-  // ======================================
-
-  updateMenuParticles();
-  drawMenuParticles();
-
-  // ======================================
-  // COBRA RGB
-  // ======================================
-
-  updateMenuSnake();
-  drawMenuSnake();
-
-  // ======================================
-  // GRID
-  // ======================================
-
-  stroke(25, 10, 45);
-
-  for (let x = 0; x < width; x += scaleSize) {
-    line(x, 0, x, gameHeight);
+  // Partículas de fundo
+  for (let i = 0; i < 25; i++) {
+    fill(0, random(150,255), random(150,255), 120);
+    noStroke();
+    circle(
+      (frameCount * (i+1) * 0.2 + i*90) % width,
+      (i*47) % height,
+      random(1,3)
+    );
   }
 
-  for (let y = 0; y < gameHeight; y += scaleSize) {
-    line(0, y, width, y);
-  }
-
-  noStroke();
-
-  // ======================================
+  // =========================
   // TÍTULO
-  // ======================================
+  // =========================
+  textAlign(CENTER);
 
-  drawMenuTitle();
+  drawingContext.shadowBlur = 35;
+  drawingContext.shadowColor = "#00F5FF";
 
-  // ======================================
-  // BOTÃO JOGAR
-  // ======================================
-
-  let playX = width / 2 - 120;
-  let playY = 260;
-  let playW = 240;
-  let playH = 55;
-
-  let playHover =
-    mouseX >= playX &&
-    mouseX <= playX + playW &&
-    mouseY >= playY &&
-    mouseY <= playY + playH;
-
-  drawingContext.shadowBlur = playHover ? 30 : 15;
-  drawingContext.shadowColor = "#00FFFF";
-
-  fill(playHover ? color(0,255,255,60) : color(10,20,35));
-
-  stroke("#00FFFF");
-  strokeWeight(2);
-
-  rect(playX, playY, playW, playH, 10);
-
-  noStroke();
-
-  fill(playHover ? "#FFFFFF" : "#00FFFF");
-  textAlign(CENTER, CENTER);
-  textSize(playHover ? 24 : 22);
-
-  text("▶ JOGAR", width/2, playY + playH/2);
-
-  // ======================================
-  // BOTÃO SKINS
-  // ======================================
-
-  let skinX = width / 2 - 120;
-  let skinY = 335;
-  let skinW = 240;
-  let skinH = 50;
-
-  let skinHover =
-    mouseX >= skinX &&
-    mouseX <= skinX + skinW &&
-    mouseY >= skinY &&
-    mouseY <= skinY + skinH;
-
-  drawingContext.shadowBlur = skinHover ? 25 : 15;
-  drawingContext.shadowColor = "#FF00FF";
-
-  fill(skinHover ? color(255,0,255,60) : color(15,10,30));
-
-  stroke("#FF00FF");
-  strokeWeight(2);
-
-  rect(skinX, skinY, skinW, skinH, 10);
-
-  noStroke();
-
-  fill(skinHover ? "#FFFFFF" : "#FF00FF");
-  textSize(skinHover ? 21 : 19);
-
-  text("🎨 SKINS", width/2, skinY + skinH/2);
-
-  // ESTATÍSTICAS
-fill("#2563EB");
-stroke("#38BDF8");
-strokeWeight(2);
-
-rect(width/2 - 120, 410, 240, 50, 12);
-
-noStroke();
-fill(255);
-textAlign(CENTER, CENTER);
-textSize(22);
-text("ESTATÍSTICAS", width/2, 435);
-
-  // ======================================
-  // WALLET / PERFIL
-  // ======================================
-
-  let panelX = width/2 - 145;
-  let panelY = 390;
-  let panelW = 290;
-  let panelH = 100;
+  fill("#00F5FF");
+  textSize(58);
+  text("SNAKE", width/2, 95);
 
   drawingContext.shadowBlur = 18;
+  drawingContext.shadowColor = "#FF00D4";
+
+  fill("#FF00D4");
+  textSize(32);
+  text("CYBERPUNK", width/2, 135);
+
+  drawingContext.shadowBlur = 0;
+
+  fill(180);
+  textSize(14);
+  text("DIGITAL INFILTRATION SYSTEM", width/2, 160);
+
+  // =========================
+  // BOTÕES
+  // =========================
+  const btnX = width/2 - 120;
+  const btnW = 240;
+  const btnH = 50;
+
+  drawMenuButton("JOGAR", btnX, 200, btnW, btnH, "#00F5FF", "▶");
+  drawMenuButton("SKINS", btnX, 270, btnW, btnH, "#FF00D4", "🎨");
+  drawMenuButton("ESTATÍSTICAS", btnX, 340, btnW, btnH, "#3B82F6", "📊");
+
+  // =========================
+  // PAINEL PLAYER
+  // =========================
+  const panelX = width/2 - 145;
+  const panelY = 430;
+
+  drawingContext.shadowBlur = 22;
   drawingContext.shadowColor = "#00E5FF";
 
-  fill(10,18,35);
+  fill(8, 20, 35, 230);
   stroke("#00E5FF");
   strokeWeight(2);
 
-  rect(panelX, panelY, panelW, panelH, 12);
+  rect(panelX, panelY, 290, 95, 14);
 
-  noStroke();
   drawingContext.shadowBlur = 0;
 
   // Wallet
+  noStroke();
   fill("#00E5FF");
   textAlign(LEFT, CENTER);
   textSize(12);
@@ -1116,56 +1074,49 @@ text("ESTATÍSTICAS", width/2, 435);
 
   fill("#FFD700");
   textSize(22);
-  text("🪙 " + coins.toLocaleString("pt-BR"),
-       panelX + 18,
-       panelY + 42);
+  text(
+    "🪙 " + coins.toLocaleString("pt-BR"),
+    panelX + 18,
+    panelY + 42
+  );
 
   // Divisor
-  stroke(40,70,100);
-  line(panelX + 150, panelY + 15,
-       panelX + 150, panelY + 85);
+  stroke(40, 70, 100);
+  line(
+    panelX + 145,
+    panelY + 15,
+    panelX + 145,
+    panelY + 80
+  );
   noStroke();
 
   // Recorde
   fill("#7DD3FC");
-  textAlign(LEFT, CENTER);
   textSize(11);
-  text("RECORDE", panelX + 165, panelY + 20);
+  text("RECORDE", panelX + 160, panelY + 18);
 
-  fill("#FFFFFF");
-  textSize(17);
-  text("🏆 " + highScore,
-       panelX + 165,
-       panelY + 40);
+  fill(255);
+  textSize(18);
+  text("🏆 " + highScore, panelX + 160, panelY + 40);
 
-  // Skin
+  // Skin equipada
   fill("#C084FC");
   textSize(11);
-  text("SKIN", panelX + 165, panelY + 60);
+  text("SKIN", panelX + 160, panelY + 60);
 
-  fill("#FFFFFF");
+  fill(255);
   textSize(13);
-  text(skinNames[currentSkin],
-       panelX + 165,
-       panelY + 78);
+  text(skinNames[currentSkin], panelX + 160, panelY + 78);
 
-  // ======================================
-  // RODAPÉ
-  // ======================================
-
-  fill(80);
-  textAlign(CENTER, CENTER);
-  textSize(11);
-
+  // Rodapé
+  fill(90);
+  textAlign(CENTER);
+  textSize(12);
   text(
     "SNAKE CYBERPUNK // SYSTEM ONLINE",
     width/2,
-    height - 20
+    height - 18
   );
-
-  drawingContext.shadowBlur = 0;
-  drawingContext.shadowColor = "transparent";
-
 }
 function createShield() {
 
@@ -1209,8 +1160,38 @@ function draw() {
     return;
   }
 
+  if (gameState === "stats") {
+  drawStats();
+  return;
 }
+}
+function drawStats() {
 
+  background(8, 10, 20);
+
+  fill("#22D3EE");
+  textAlign(CENTER);
+  textSize(34);
+  text("ESTATÍSTICAS", width/2, 60);
+
+  fill(255);
+  textAlign(LEFT);
+  textSize(20);
+
+  text(`🎮 Partidas: ${stats.gamesPlayed}`, 80, 140);
+  text(`🍎 Frutas: ${stats.fruitsEaten}`, 80, 180);
+  text(`✨ Lendárias: ${stats.legendaryEaten}`, 80, 220);
+  text(`🛡 Escudos: ${stats.shieldsCollected}`, 80, 260);
+  text(`💰 Bits: ${stats.totalBits}`, 80, 300);
+
+  fill("#2563EB");
+  rect(width/2 - 100, 560, 200, 50, 12);
+
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textSize(22);
+  text("VOLTAR", width/2, 585);
+}
 
 function drawGame() {
 
@@ -1337,29 +1318,58 @@ saveStats();
 function mousePressed() {
 
   // ======================================
-  // MENU
+// MENU
+// ======================================
+if (gameState === "menu") {
+
+  // JOGAR
+  if (
+    mouseX >= width/2 - 120 &&
+    mouseX <= width/2 + 120 &&
+    mouseY >= 200 &&
+    mouseY <= 250
+  ) {
+    startGame();
+    return;
+  }
+
+  // SKINS
+  if (
+    mouseX >= width/2 - 120 &&
+    mouseX <= width/2 + 120 &&
+    mouseY >= 270 &&
+    mouseY <= 320
+  ) {
+    gameState = "skins";
+    return;
+  }
+
+  // ESTATÍSTICAS
+  if (
+    mouseX >= width/2 - 120 &&
+    mouseX <= width/2 + 120 &&
+    mouseY >= 340 &&
+    mouseY <= 390
+  ) {
+    gameState = "stats";
+    return;
+  }
+}
   // ======================================
-  if (gameState === "menu") {
+  // ESTATÍSTICAS
+  // ======================================
+  else if (gameState === "stats") {
 
     if (
-      mouseX >= width/2 - 120 &&
-      mouseX <= width/2 + 120 &&
-      mouseY >= 260 &&
-      mouseY <= 315
+      mouseX >= width/2 - 100 &&
+      mouseX <= width/2 + 100 &&
+      mouseY >= 560 &&
+      mouseY <= 610
     ) {
-      startGame();
+      gameState = "menu";
       return;
     }
 
-    if (
-      mouseX >= width/2 - 120 &&
-      mouseX <= width/2 + 120 &&
-      mouseY >= 335 &&
-      mouseY <= 385
-    ) {
-      gameState = "skins";
-      return;
-    }
   }
 
   // ======================================
@@ -1470,7 +1480,6 @@ function mousePressed() {
       return;
     }
   }
-
 }
 function drawSkins() {
 
