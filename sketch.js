@@ -8,6 +8,7 @@ let bootTimer = 0;
 const BOOT_DURATION = 150; // 150 frames ≈ 2,5s
 let bootProgress = 0;
 let bootFinished = false;
+let isPaused = true;
 let snake;
 let food;
 let shield = null;
@@ -900,6 +901,7 @@ sfxShield.setVolume(0.60);
 sfxGameOver.setVolume(0.75);
 }
 function startGame() {
+ isPaused = false;   // ← ADICIONE ESTA LINHA
 
   // Música
   if (!bgMusic.isPlaying()) {
@@ -1362,6 +1364,58 @@ function drawStats() {
 
   drawingContext.shadowBlur = 0;
 }
+function drawPauseOverlay() {
+
+  fill(0, 180);
+  rect(0, 0, width, height);
+
+  fill(15, 25, 40);
+  stroke("#22D3EE");
+  strokeWeight(2);
+
+  rect(width/2 - 140, 150, 280, 260, 14);
+
+  noStroke();
+
+  fill("#22D3EE");
+  textAlign(CENTER);
+  textSize(32);
+  text("PAUSADO", width/2, 190);
+
+  fill(180);
+  textSize(13);
+  text("Pressione ESC para continuar", width/2, 215);
+
+  drawMenuButton(
+    "CONTINUAR",
+    width/2 - 100,
+    250,
+    200,
+    42,
+    "#22D3EE",
+    "▶"
+  );
+
+  drawMenuButton(
+    "REINICIAR",
+    width/2 - 100,
+    305,
+    200,
+    42,
+    "#F59E0B",
+    "↻"
+  );
+
+  drawMenuButton(
+    "MENU",
+    width/2 - 100,
+    360,
+    200,
+    42,
+    "#EF4444",
+    "⌂"
+  );
+}
 
 function drawGame() {
 
@@ -1375,6 +1429,21 @@ function drawGame() {
 
   // Atualiza a cobra
   snake.update();
+  if (isPaused) {
+  drawObstacles();
+  drawFood();
+  drawShield();
+
+  updateParticles();
+  updateFloatingTexts();
+
+  snake.show();
+  drawHUD();
+  drawPauseOverlay();
+
+  pop();
+  return;
+}
 
   // =========================
   // MORTE
@@ -1482,49 +1551,52 @@ saveStats();
 
   drawHUD();
   drawAchievementPopup();
-
+if (isPaused) {
+  drawPauseOverlay();
+}
   pop();
 }
 function mousePressed() {
 
   // ======================================
-// MENU
-// ======================================
-if (gameState === "menu") {
+  // MENU
+  // ======================================
+  if (gameState === "menu") {
 
-  // JOGAR
-  if (
-    mouseX >= width/2 - 120 &&
-    mouseX <= width/2 + 120 &&
-    mouseY >= 200 &&
-    mouseY <= 250
-  ) {
-    startGame();
-    return;
+    // JOGAR
+    if (
+      mouseX >= width/2 - 120 &&
+      mouseX <= width/2 + 120 &&
+      mouseY >= 200 &&
+      mouseY <= 250
+    ) {
+      startGame();
+      return;
+    }
+
+    // SKINS
+    if (
+      mouseX >= width/2 - 120 &&
+      mouseX <= width/2 + 120 &&
+      mouseY >= 270 &&
+      mouseY <= 320
+    ) {
+      gameState = "skins";
+      return;
+    }
+
+    // ESTATÍSTICAS
+    if (
+      mouseX >= width/2 - 120 &&
+      mouseX <= width/2 + 120 &&
+      mouseY >= 340 &&
+      mouseY <= 390
+    ) {
+      gameState = "stats";
+      return;
+    }
   }
 
-  // SKINS
-  if (
-    mouseX >= width/2 - 120 &&
-    mouseX <= width/2 + 120 &&
-    mouseY >= 270 &&
-    mouseY <= 320
-  ) {
-    gameState = "skins";
-    return;
-  }
-
-  // ESTATÍSTICAS
-  if (
-    mouseX >= width/2 - 120 &&
-    mouseX <= width/2 + 120 &&
-    mouseY >= 340 &&
-    mouseY <= 390
-  ) {
-    gameState = "stats";
-    return;
-  }
-}
   // ======================================
   // ESTATÍSTICAS
   // ======================================
@@ -1539,7 +1611,6 @@ if (gameState === "menu") {
       gameState = "menu";
       return;
     }
-
   }
 
   // ======================================
@@ -1557,7 +1628,7 @@ if (gameState === "menu") {
 
     const startY = 110;
 
-    // Voltar
+    // VOLTAR
     if (
       mouseX >= 20 &&
       mouseX <= 120 &&
@@ -1632,6 +1703,58 @@ if (gameState === "menu") {
       }
 
       card++;
+    }
+  }
+
+  // ======================================
+  // PAUSA
+  // ======================================
+  else if (gameState === "playing" && isPaused) {
+
+    // CONTINUAR
+    if (
+      mouseX >= width/2 - 100 &&
+      mouseX <= width/2 + 100 &&
+      mouseY >= 250 &&
+      mouseY <= 292
+    ) {
+      isPaused = false;
+
+if (!bgMusic.isPlaying()) {
+  bgMusic.play();
+}
+
+return;
+    }
+
+    // REINICIAR
+    if (
+      mouseX >= width/2 - 100 &&
+      mouseX <= width/2 + 100 &&
+      mouseY >= 305 &&
+      mouseY <= 347
+    ) {
+      isPaused = false;
+      bgMusic.stop();
+      startGame();
+      return;
+    }
+
+    // MENU PRINCIPAL
+    if (
+      mouseX >= width/2 - 100 &&
+      mouseX <= width/2 + 100 &&
+      mouseY >= 360 &&
+      mouseY <= 402
+    ) {
+      isPaused = false;
+
+      if (bgMusic.isPlaying()) {
+        bgMusic.stop();
+      }
+
+      gameState = "menu";
+      return;
     }
   }
 
@@ -2510,21 +2633,40 @@ function resetGame() {
 function keyPressed() {
 
   // ======================================
-  // ESC - Voltar da loja
+  // PAUSAR / CONTINUAR (ESC)
   // ======================================
+  if (keyCode === ESCAPE) {
 
-  if (
-    keyCode === ESCAPE &&
-    gameState === "skins"
-  ) {
-    gameState = "menu";
-    return;
+    // Pausa durante a partida
+    if (gameState === "playing") {
+
+      isPaused = !isPaused;
+
+      if (isPaused) {
+        bgMusic.pause();
+      } else {
+        bgMusic.play();
+      }
+
+      return false; // evita sair da tela cheia
+    }
+
+    // Voltar da loja
+    if (gameState === "skins") {
+      gameState = "menu";
+      return false;
+    }
+
+    // Voltar das estatísticas
+    if (gameState === "stats") {
+      gameState = "menu";
+      return false;
+    }
   }
 
   // ======================================
-  // R - Reiniciar após Game Over
+  // REINICIAR (GAME OVER)
   // ======================================
-
   if (
     gameState === "gameover" &&
     (key === "r" || key === "R")
@@ -2534,49 +2676,32 @@ function keyPressed() {
   }
 
   // ======================================
-  // Movimento da cobra
+  // MOVIMENTO DA COBRA
+  // (desativado quando pausado)
   // ======================================
+  if (gameState === "playing" && !isPaused) {
 
-  if (
-    gameState === "playing"
-  ) {
-
-    if (
-      keyCode === UP_ARROW &&
-      snake.ydir !== 1
-    ) {
+    if (keyCode === UP_ARROW && snake.ydir !== 1) {
       snake.dir(0, -1);
     }
 
-    else if (
-      keyCode === DOWN_ARROW &&
-      snake.ydir !== -1
-    ) {
+    else if (keyCode === DOWN_ARROW && snake.ydir !== -1) {
       snake.dir(0, 1);
     }
 
-    else if (
-      keyCode === LEFT_ARROW &&
-      snake.xdir !== 1
-    ) {
+    else if (keyCode === LEFT_ARROW && snake.xdir !== 1) {
       snake.dir(-1, 0);
     }
 
-    else if (
-      keyCode === RIGHT_ARROW &&
-      snake.xdir !== -1
-    ) {
+    else if (keyCode === RIGHT_ARROW && snake.xdir !== -1) {
       snake.dir(1, 0);
     }
-
   }
 
   // ======================================
-  // Atalhos da loja (1 ao 0)
-  // Apenas funcionam dentro da tela SKINS
+  // ATALHOS DA LOJA
   // ======================================
-
-   if (gameState === "skins") {
+  if (gameState === "skins") {
 
     if (key === "1") equipSkin(skinCards[0]);
     if (key === "2") buySkin(skinCards[1]);
@@ -2589,44 +2714,42 @@ function keyPressed() {
     if (key === "9") buySkin(skinCards[8]);
     if (key === "0") buySkin(skinCards[9]);
 
-  }
-// ======================================
-// DEBUG MODE
-// ======================================
-
-if (debugMode && gameState === "playing") {
-
-  // P = +100 Score +1000 Bits
-  if (key === "p" || key === "P") {
-
-    score += 100;
-    coins += 1000;
-
-    checkAchievements();
-    saveGame();
-
+    return;
   }
 
-  // L = força fruta lendária
-  if (key === "l" || key === "L") {
+  // ======================================
+  // DEBUG MODE
+  // ======================================
+  if (debugMode && gameState === "playing") {
 
-    forceLegendary = true;
-    createFood();
+    // P = +100 Score +1000 Bits
+    if (key === "p" || key === "P") {
 
+      score += 100;
+      coins += 1000;
+
+      checkAchievements();
+      saveGame();
+      saveStats();
+    }
+
+    // L = Força fruta lendária
+    if (key === "l" || key === "L") {
+
+      forceLegendary = true;
+      createFood();
+    }
+
+    // B = Desbloqueia todas as skins
+    if (key === "b" || key === "B") {
+
+      unlockedSkins = skinCards.map(s => s.id);
+
+      checkAchievements();
+      saveGame();
+    }
   }
-
-  // B = desbloqueia todas as skins
-  if (key === "b" || key === "B") {
-
-    unlockedSkins = skinCards.map(s => s.id);
-
-    checkAchievements();
-    saveGame();
-
-  }
-
-}
-} // ← ESTA CHAVE FECHA A keyPressed()
+}// ← ESTA CHAVE FECHA A keyPressed()
 
 // =========================
 // SNAKE CYBERPUNK V2.0
