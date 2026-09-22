@@ -44,7 +44,13 @@ let forceLegendary = false;
 // =========================
 // ACHIEVEMENTS
 // =========================
-
+let stats = {
+  gamesPlayed: 0,
+  fruitsEaten: 0,
+  legendaryEaten: 0,
+  shieldsCollected: 0,
+  totalBits: 0
+};
 let achievements = {
 
   firstBlood: false,
@@ -603,7 +609,25 @@ function updateParticles() {
   drawingContext.shadowBlur = 0;
 
 }
+function saveStats() {
 
+  localStorage.setItem(
+    "snakeStats",
+    JSON.stringify(stats)
+  );
+
+}
+function loadStats() {
+
+  let data = localStorage.getItem("snakeStats");
+
+  if (data) {
+
+    stats = JSON.parse(data);
+
+  }
+
+}
 function saveGame() {
 
   localStorage.setItem(
@@ -853,7 +877,7 @@ function setup() {
   frameRate(10);
 
   loadGame();
-
+  loadStats();
   snake = new Snake();
 
   createMenuSnake();
@@ -883,7 +907,8 @@ function startGame() {
   // Estado
   gameState = "playing";
   gameOverState = false;
-
+  stats.gamesPlayed++;
+  saveStats();
   score = 0;
   level = 1;
 
@@ -1048,6 +1073,19 @@ function drawMenu() {
   textSize(skinHover ? 21 : 19);
 
   text("🎨 SKINS", width/2, skinY + skinH/2);
+
+  // ESTATÍSTICAS
+fill("#2563EB");
+stroke("#38BDF8");
+strokeWeight(2);
+
+rect(width/2 - 120, 410, 240, 50, 12);
+
+noStroke();
+fill(255);
+textAlign(CENTER, CENTER);
+textSize(22);
+text("ESTATÍSTICAS", width/2, 435);
 
   // ======================================
   // WALLET / PERFIL
@@ -1215,7 +1253,8 @@ function drawGame() {
 
       shieldActive = true;
       shield = null;
-
+    stats.shieldsCollected++;
+saveStats();
       sfxShield.play();
 
       createParticles(head.x + 10, head.y + 10, 20, color("#00E5FF"));
@@ -1231,15 +1270,15 @@ function drawGame() {
   // FRUTA
   // =========================
   if (snake.eat(food)) {
-
+  stats.fruitsEaten++;
     if (legendaryFood) {
-
+    stats.legendaryEaten++;
       sfxLegendary.play();
       startShake(8, 10);
 
       score += 100;
       coins += 50;
-
+      stats.totalBits += 50;
       createParticles(food.x + 10, food.y + 10, 40, color("#FFD700"));
       createFloatingText(food.x + 10, food.y, "+100", color("#FFD700"));
 
@@ -1252,7 +1291,7 @@ function drawGame() {
 
       score += 50;
       coins += 25;
-
+      stats.totalBits += 25;
       createParticles(food.x + 10, food.y + 10, 22, color("#00BFFF"));
       createFloatingText(food.x + 10, food.y, "+50", color("#00BFFF"));
 
@@ -1261,8 +1300,9 @@ function drawGame() {
       sfxEat.play();
       startShake(2, 3);
 
-      score += 10;
-      coins += 5;
+     score += 10;
+    coins += 5;
+    stats.totalBits += 5;
 
       createParticles(food.x + 10, food.y + 10, 10, color("#FF00AA"));
       createFloatingText(food.x + 10, food.y, "+10", color("#FF00AA"));
@@ -1273,6 +1313,7 @@ function drawGame() {
     if (score > highScore) highScore = score;
 
     saveGame();
+    saveStats();
     createFood();
   }
 
