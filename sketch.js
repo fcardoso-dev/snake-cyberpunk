@@ -1167,30 +1167,111 @@ function draw() {
 }
 function drawStats() {
 
-  background(8, 10, 20);
+  background(5, 8, 18);
 
-  fill("#22D3EE");
+  // Grid de fundo
+  stroke(20, 35, 55);
+  strokeWeight(1);
+
+  for (let x = 0; x < width; x += 20) {
+    line(x, 0, x, height);
+  }
+
+  for (let y = 0; y < height; y += 20) {
+    line(0, y, width, y);
+  }
+
+  noStroke();
+
+  // ===== TÍTULO =====
+  drawingContext.shadowBlur = 25;
+  drawingContext.shadowColor = "#00E5FF";
+
+  fill("#00E5FF");
   textAlign(CENTER);
-  textSize(34);
-  text("ESTATÍSTICAS", width/2, 60);
+  textSize(38);
+  text("ESTATÍSTICAS", width/2, 55);
 
-  fill(255);
-  textAlign(LEFT);
-  textSize(20);
+  drawingContext.shadowBlur = 0;
 
-  text(`🎮 Partidas: ${stats.gamesPlayed}`, 80, 140);
-  text(`🍎 Frutas: ${stats.fruitsEaten}`, 80, 180);
-  text(`✨ Lendárias: ${stats.legendaryEaten}`, 80, 220);
-  text(`🛡 Escudos: ${stats.shieldsCollected}`, 80, 260);
-  text(`💰 Bits: ${stats.totalBits}`, 80, 300);
+  fill(170);
+  textSize(13);
+  text("CARREIRA DO JOGADOR", width/2, 80);
 
-  fill("#2563EB");
-  rect(width/2 - 100, 560, 200, 50, 12);
+  // ===== CARDS =====
+  const cardX = width/2 - 150;
+  const cardW = 300;
+  const cardH = 48;
+  const gap = 12;
 
-  fill(255);
+  const cards = [
+    ["🎮", "PARTIDAS", stats.gamesPlayed, "#38BDF8"],
+    ["🍎", "FRUTAS", stats.fruitsEaten, "#22C55E"],
+    ["✨", "LENDÁRIAS", stats.legendaryEaten, "#FACC15"],
+    ["🛡", "ESCUDOS", stats.shieldsCollected, "#06B6D4"],
+    ["💰", "BITS TOTAIS", stats.totalBits.toLocaleString("pt-BR"), "#F59E0B"]
+  ];
+
+  for (let i = 0; i < cards.length; i++) {
+
+    const y = 110 + i * (cardH + gap);
+
+    drawingContext.shadowBlur = 12;
+    drawingContext.shadowColor = cards[i][3];
+
+    fill(10, 18, 35, 235);
+    stroke(cards[i][3]);
+    strokeWeight(1.5);
+
+    rect(cardX, y, cardW, cardH, 10);
+
+    drawingContext.shadowBlur = 0;
+
+    noStroke();
+
+    fill(cards[i][3]);
+    textAlign(LEFT, CENTER);
+    textSize(22);
+    text(cards[i][0], cardX + 15, y + 24);
+
+    fill(190);
+    textSize(11);
+    text(cards[i][1], cardX + 48, y + 16);
+
+    fill(255);
+    textSize(18);
+    text(cards[i][2], cardX + 48, y + 33);
+  }
+
+  // ===== BOTÃO VOLTAR =====
+  const backX = width/2 - 110;
+  const backY = 560;
+  const backW = 220;
+  const backH = 50;
+
+  const hover =
+    mouseX >= backX &&
+    mouseX <= backX + backW &&
+    mouseY >= backY &&
+    mouseY <= backY + backH;
+
+  drawingContext.shadowBlur = hover ? 25 : 12;
+  drawingContext.shadowColor = "#3B82F6";
+
+  fill(hover ? color(59,130,246,80) : color(12,22,40));
+  stroke("#3B82F6");
+  strokeWeight(2);
+
+  rect(backX, backY, backW, backH, 12);
+
+  noStroke();
+
+  fill(hover ? 255 : "#93C5FD");
   textAlign(CENTER, CENTER);
   textSize(22);
-  text("VOLTAR", width/2, 585);
+  text("← VOLTAR", width/2, backY + 25);
+
+  drawingContext.shadowBlur = 0;
 }
 
 function drawGame() {
