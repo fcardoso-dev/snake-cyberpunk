@@ -2,13 +2,66 @@
 // SNAKE CYBERPUNK V2.0
 // PARTE 1
 // =========================
-
+// =========================
+// ADVANCED STATS
+// =========================
+let totalFruits = 0;
+let totalGames = 0;
+let totalPlayTime = 0;   // segundos
+let gameStartTime = 0;
 let gameState = "boot";
+// novo estado
+// gameState = "achievements"
+const achievementList = [
+  {
+    id: "rookie",
+    icon: "🥉",
+    title: "Iniciante",
+    goal: 100,
+    type: "score"
+  },
+  {
+    id: "collector",
+    icon: "🍎",
+    title: "Colecionador",
+    goal: 250,
+    type: "fruits"
+  },
+  {
+    id: "veteran",
+    icon: "🎮",
+    title: "Veterano",
+    goal: 50,
+    type: "games"
+  },
+  {
+    id: "rich",
+    icon: "💰",
+    title: "Magnata",
+    goal: 10000,
+    type: "coins"
+  },
+  {
+    id: "legend",
+    icon: "👑",
+    title: "Lenda",
+    goal: 2000,
+    type: "highscore"
+  },
+  {
+  id: "neonMaster",
+  icon: "🌈",
+  title: "Neon Master",
+  goal: 10,        // quantidade de skins
+  type: "skins"
+}
+];
 let bootTimer = 0;
 const BOOT_DURATION = 150; // 150 frames ≈ 2,5s
 let bootProgress = 0;
 let bootFinished = false;
 let isPaused = true;
+let previousState = "menu";
 let snake;
 let food;
 let shield = null;
@@ -43,7 +96,14 @@ let sfxShield;
 let sfxGameOver;
 let bgMusic;
 let debugMode = true;
+// =========================
+// CONFIGURAÇÕES
+// =========================
+let musicVolume = 1.0;
+let sfxVolume = 1.0;
+let gameFPS = 9;
 let forceLegendary = false;
+let achievementAnim = [];
 // =========================
 // ACHIEVEMENTS
 // =========================
@@ -612,24 +672,81 @@ function updateParticles() {
   drawingContext.shadowBlur = 0;
 
 }
-function saveStats() {
+function saveStats(){
+
+  localStorage.setItem("snakeHighScore", highScore);
+  localStorage.setItem("snakeCoins", coins);
+
+  localStorage.setItem("snakeTotalFruits", totalFruits);
+  localStorage.setItem("snakeTotalGames", totalGames);
+  localStorage.setItem("snakePlayTime", totalPlayTime);
+
+}
+function loadStats(){
+
+  highScore =
+    Number(localStorage.getItem("snakeHighScore")) || 0;
+
+  coins =
+    Number(localStorage.getItem("snakeCoins")) || 0;
+
+  totalFruits =
+    Number(localStorage.getItem("snakeTotalFruits")) || 0;
+
+  totalGames =
+    Number(localStorage.getItem("snakeTotalGames")) || 0;
+
+  totalPlayTime =
+    Number(localStorage.getItem("snakePlayTime")) || 0;
+
+}
+function saveSettings() {
 
   localStorage.setItem(
-    "snakeStats",
-    JSON.stringify(stats)
+    "snakeMusicVolume",
+    musicVolume
+  );
+
+  localStorage.setItem(
+    "snakeSfxVolume",
+    sfxVolume
+  );
+
+  localStorage.setItem(
+    "snakeFPS",
+    gameFPS
   );
 
 }
-function loadStats() {
+function loadSettings() {
 
-  let data = localStorage.getItem("snakeStats");
+  let savedMusic = localStorage.getItem("snakeMusicVolume");
+  let savedSfx = localStorage.getItem("snakeSfxVolume");
+  let savedFPS = localStorage.getItem("snakeFPS");
 
-  if (data) {
-
-    stats = JSON.parse(data);
-
+  // Música
+  if (savedMusic === null) {
+    musicVolume = 0.22;
+  } else {
+    musicVolume = Number(savedMusic);
   }
 
+  // Efeitos
+  if (savedSfx === null) {
+    sfxVolume = 1.0;
+  } else {
+    sfxVolume = Number(savedSfx);
+  }
+
+  // FPS
+  if (savedFPS === null) {
+    gameFPS = 9;
+  } else {
+    gameFPS = Number(savedFPS);
+  }
+
+  frameRate(gameFPS);
+  updateAudioVolumes();
 }
 function saveGame() {
 
@@ -702,6 +819,15 @@ if(savedAchievements !== null){
 }
 
 }
+function resetAchievementAnimation(){
+
+  achievementAnim = [];
+
+  for(let i = 0; i < achievementList.length; i++){
+    achievementAnim.push(0);
+  }
+
+}
 function unlockAchievement(id, title) {
 
   // Já desbloqueada? Sai fora.
@@ -711,7 +837,7 @@ function unlockAchievement(id, title) {
 
   // Popup
   achievementPopup = title;
-  achievementTimer = 180; // 3 segundos
+  achievementTimer = 35; 
 
   // Som (se existir)
   if (typeof sfxAchievement !== "undefined") {
@@ -722,31 +848,52 @@ function unlockAchievement(id, title) {
 }
 function checkAchievements(){
 
+  // 🥉 Iniciante
   if(score >= 100){
-
     unlockAchievement(
-      "firstBlood",
-      "FIRST BLOOD"
+      "rookie",
+      "INICIANTE"
     );
-
   }
 
-  if(coins >= 1000){
-
+  // 🍎 Colecionador
+  if(totalFruits >= 250){
     unlockAchievement(
-      "richHacker",
-      "RICH HACKER"
+      "collector",
+      "COLECIONADOR"
     );
-
   }
 
+  // 🎮 Veterano
+  if(totalGames >= 50){
+    unlockAchievement(
+      "veteran",
+      "VETERANO"
+    );
+  }
+
+  // 💰 Magnata
+  if(coins >= 10000){
+    unlockAchievement(
+      "rich",
+      "MAGNATA"
+    );
+  }
+
+  // 👑 Lenda
+  if(highScore >= 2000){
+    unlockAchievement(
+      "legend",
+      "LENDA"
+    );
+  }
+
+  // 🌈 Mestre Neon (secreta)
   if(unlockedSkins.length === skinCards.length){
-
     unlockAchievement(
       "neonMaster",
       "NEON MASTER"
     );
-
   }
 
 }
@@ -756,7 +903,7 @@ function drawAchievementPopup() {
 
   achievementTimer--;
 
-  if (achievementTimer <= 0) {
+  if (achievementTimer <= 35) {
     achievementPopup = null;
     return;
   }
@@ -875,32 +1022,74 @@ function preload() {
 }
 function setup() {
 
+  // =========================
+  // CANVAS
+  // =========================
   createCanvas(800, 680);
 
+  // =========================
+  // FPS PADRÃO
+  // =========================
   frameRate(10);
 
+  // =========================
+  // SAVE DATA
+  // =========================
   loadGame();
   loadStats();
+
+  // NOVO
+  loadSettings();
+
+  // =========================
+  // GAME OBJECTS
+  // =========================
   snake = new Snake();
 
   createMenuSnake();
 
+  createFood();
+  createObstacle();
+
+  // =========================
+  // MENU PARTICLES
+  // =========================
   for (let i = 0; i < maxMenuParticles; i++) {
     createMenuParticle();
   }
 
-  createFood();
-  createObstacle();
-bgMusic.setLoop(true);
-bgMusic.setVolume(0.22);
+  // =========================
+  // ÁUDIO PADRÃO
+  // =========================
+  bgMusic.setLoop(true);
 
-sfxEat.setVolume(0.45);
-sfxRare.setVolume(0.55);
-sfxLegendary.setVolume(0.70);
-sfxShield.setVolume(0.60);
-sfxGameOver.setVolume(0.75);
+  // Caso não exista save ainda
+  if (musicVolume === undefined) {
+    musicVolume = 0.22;
+  }
+
+  if (sfxVolume === undefined) {
+    sfxVolume = 0.60;
+  }
+
+  // Aplica os volumes carregados
+  updateAudioVolumes();
+
+  // Volumes individuais de fallback
+  sfxEat.setVolume(0.45 * sfxVolume);
+  sfxRare.setVolume(0.55 * sfxVolume);
+  sfxLegendary.setVolume(0.70 * sfxVolume);
+  sfxShield.setVolume(0.60 * sfxVolume);
+  sfxGameOver.setVolume(0.75 * sfxVolume);
+
 }
 function startGame() {
+  userStartAudio();
+
+updateAudioVolumes();
+  gameStartTime = millis();
+totalGames++;
+saveStats();
  isPaused = false;   // ← ADICIONE ESTA LINHA
 
   // Música
@@ -1002,7 +1191,27 @@ function drawMenuButton(label, x, y, w, h, colorGlow, icon = "") {
 function drawMenu() {
 
   background(5, 3, 15);
+// =========================
+// BOTÃO CONFIGURAÇÕES
+// =========================
+let gearHover =
+  mouseX >= 15 &&
+  mouseX <= 50 &&
+  mouseY >= 15 &&
+  mouseY <= 50;
 
+fill(gearHover ? "#8B5CF6" : "#111827");
+stroke("#8B5CF6");
+strokeWeight(2);
+
+rect(15, 15, 35, 35, 10);
+
+noStroke();
+
+textAlign(CENTER, CENTER);
+textSize(18);
+fill(255);
+text("⚙", 32, 33);
   drawGrid();
 
   // Partículas de fundo
@@ -1051,12 +1260,13 @@ function drawMenu() {
   drawMenuButton("JOGAR", btnX, 200, btnW, btnH, "#00F5FF", "▶");
   drawMenuButton("SKINS", btnX, 270, btnW, btnH, "#FF00D4", "🎨");
   drawMenuButton("ESTATÍSTICAS", btnX, 340, btnW, btnH, "#3B82F6", "📊");
+  drawMenuButton("CONQUISTAS",width/2 - 120,410,240,50,"#F59E0B","🏆");
 
   // =========================
   // PAINEL PLAYER
   // =========================
   const panelX = width/2 - 145;
-  const panelY = 430;
+  const panelY = 475;
 
   drawingContext.shadowBlur = 22;
   drawingContext.shadowColor = "#00E5FF";
@@ -1145,9 +1355,9 @@ function createShield() {
 function draw() {
 
   if (gameState === "boot") {
-  drawBoot();
-  return;
-}
+    drawBoot();
+    return;
+  }
 
   if (gameState === "menu") {
     drawMenu();
@@ -1156,6 +1366,21 @@ function draw() {
 
   if (gameState === "skins") {
     drawSkins();
+    return;
+  }
+
+  if (gameState === "stats") {
+    drawStats();
+    return;
+  }
+
+  if (gameState === "achievements") {
+  drawAchievements();
+  return;
+  }
+
+  if (gameState === "settings") {
+    drawSettings();
     return;
   }
 
@@ -1168,11 +1393,137 @@ function draw() {
     drawGameOver();
     return;
   }
-
-  if (gameState === "stats") {
-  drawStats();
-  return;
 }
+function drawAchievements() {
+
+  background(8, 10, 20);
+  drawGrid();
+
+  // Inicializa animação
+  if (achievementAnim.length !== achievementList.length) {
+    achievementAnim = new Array(achievementList.length).fill(0);
+  }
+
+  // =========================
+  // TÍTULO
+  // =========================
+  drawingContext.shadowBlur = 20;
+  drawingContext.shadowColor = "#F59E0B";
+
+  fill("#F59E0B");
+  textAlign(CENTER, CENTER);
+  textSize(30);
+  text("CONQUISTAS", width / 2, 45);
+
+  drawingContext.shadowBlur = 0;
+
+  fill(150);
+  textSize(12);
+  text("100% COMPLETION", width / 2, 68);
+
+  const cardX = 60;
+  const cardW = width - 120;
+  const startY = 95;
+  const barX = cardX + 185;
+  const barW = cardW - 235;
+
+  let unlocked = 0;
+
+  for (let i = 0; i < achievementList.length; i++) {
+
+    const a = achievementList[i];
+    const y = startY + i * 82;
+
+    const progress = getAchievementProgress(a);
+    const pct = constrain(progress / a.goal, 0, 1);
+
+    // Animação suave
+    achievementAnim[i] = lerp(
+      achievementAnim[i],
+      pct,
+      0.08
+    );
+
+    const done = achievements[a.id] === true;
+
+    if (done) unlocked++;
+
+    // Card
+    fill(12, 20, 35, 235);
+    stroke(done ? "#F59E0B" : "#334155");
+    strokeWeight(done ? 2 : 1.5);
+    rect(cardX, y, cardW, 64, 14);
+
+    noStroke();
+
+    // Ícone
+    textAlign(LEFT, CENTER);
+    textSize(24);
+    fill(255);
+    text(a.icon, cardX + 15, y + 32);
+
+    // Nome
+    textSize(16);
+    text(a.title, cardX + 50, y + 20);
+
+    // Progresso
+    fill(150);
+    textSize(10);
+    text(progress + " / " + a.goal, cardX + 50, y + 42);
+
+    // Barra de fundo
+    fill(45);
+    rect(barX, y + 28, barW, 8, 4);
+
+    // Barra preenchida
+    let fillAmount = done ? 1 : achievementAnim[i];
+
+    fill(done ? "#F59E0B" : "#22D3EE");
+    rect(
+      barX,
+      y + 28,
+      barW * fillAmount,
+      8,
+      4
+    );
+
+    // Porcentagem
+    let percent = done
+      ? 100
+      : round(achievementAnim[i] * 100);
+
+    fill(done ? "#F59E0B" : 200);
+    textAlign(RIGHT, CENTER);
+    textSize(11);
+    text(
+      percent + "%",
+      cardX + cardW - 15,
+      y + 32
+    );
+  }
+
+  // =========================
+  // RODAPÉ
+  // =========================
+  fill("#F59E0B");
+  textAlign(CENTER, CENTER);
+  textSize(15);
+  text(
+    unlocked + " / " + achievementList.length + " DESBLOQUEADAS",
+    width / 2,
+    520
+  );
+
+  // Botão voltar
+  drawMenuButton(
+    "VOLTAR",
+    width / 2 - 100,
+    560,
+    200,
+    45,
+    "#2563EB",
+    "←"
+  );
 }
 function drawBoot() {
 
@@ -1256,140 +1607,299 @@ colorMode(RGB, 255);
     bootTimer = 0;
   }
 }
+function formatPlayTime(seconds){
+
+  let h = floor(seconds / 3600);
+  let m = floor((seconds % 3600) / 60);
+
+  return nf(h, 2) + "h " + nf(m, 2) + "m";
+
+}
 function drawStats() {
 
-  background(5, 8, 18);
+  background(8, 10, 20);
+  drawGrid();
 
-  // Grid de fundo
-  stroke(20, 35, 55);
-  strokeWeight(1);
-
-  for (let x = 0; x < width; x += 20) {
-    line(x, 0, x, height);
-  }
-
-  for (let y = 0; y < height; y += 20) {
-    line(0, y, width, y);
-  }
-
-  noStroke();
-
-  // ===== TÍTULO =====
+  // =========================
+  // TÍTULO
+  // =========================
   drawingContext.shadowBlur = 25;
-  drawingContext.shadowColor = "#00E5FF";
+  drawingContext.shadowColor = "#22D3EE";
 
-  fill("#00E5FF");
+  fill("#22D3EE");
   textAlign(CENTER);
-  textSize(38);
+  textSize(34);
   text("ESTATÍSTICAS", width/2, 55);
 
   drawingContext.shadowBlur = 0;
 
   fill(170);
   textSize(13);
-  text("CARREIRA DO JOGADOR", width/2, 80);
+  text("PLAYER PROFILE", width/2, 78);
 
-  // ===== CARDS =====
-  const cardX = width/2 - 150;
-  const cardW = 300;
-  const cardH = 48;
-  const gap = 12;
+  // =========================
+  // CARDS
+  // =========================
+  const startX = 90;
+  const startY = 115;
+  const gap = 20;
 
-  const cards = [
-    ["🎮", "PARTIDAS", stats.gamesPlayed, "#38BDF8"],
-    ["🍎", "FRUTAS", stats.fruitsEaten, "#22C55E"],
-    ["✨", "LENDÁRIAS", stats.legendaryEaten, "#FACC15"],
-    ["🛡", "ESCUDOS", stats.shieldsCollected, "#06B6D4"],
-    ["💰", "BITS TOTAIS", stats.totalBits.toLocaleString("pt-BR"), "#F59E0B"]
+  const stats = [
+    ["🏆", "RECORDE", highScore],
+    ["🪙", "BITS", coins.toLocaleString("pt-BR")],
+    ["🍎", "FRUTAS", totalFruits],
+    ["🎮", "PARTIDAS", totalGames],
+    ["⏱", "TEMPO", formatPlayTime(totalPlayTime)],
+    ["⭐", "SKIN", skinNames[currentSkin]]
   ];
 
-  for (let i = 0; i < cards.length; i++) {
+  let index = 0;
 
-    const y = 110 + i * (cardH + gap);
+  for (let row = 0; row < 3; row++) {
 
-    drawingContext.shadowBlur = 12;
-    drawingContext.shadowColor = cards[i][3];
+    for (let col = 0; col < 2; col++) {
 
-    fill(10, 18, 35, 235);
-    stroke(cards[i][3]);
+      const x = startX + col * (300 + gap);
+      const y = startY + row * 105;
+
+      fill(12, 20, 35, 230);
+      stroke("#334155");
+      strokeWeight(1.5);
+
+      rect(x, y, 300, 85, 14);
+
+      noStroke();
+
+      fill(255);
+      textAlign(LEFT, CENTER);
+      textSize(26);
+      text(stats[index][0], x + 18, y + 42);
+
+      fill(140);
+      textSize(11);
+      text(stats[index][1], x + 60, y + 22);
+
+      fill("#22D3EE");
+      textSize(22);
+      text(stats[index][2], x + 60, y + 48);
+
+      index++;
+    }
+  }
+
+  // =========================
+  // BOTÃO VOLTAR
+  // =========================
+  drawMenuButton(
+    "VOLTAR",
+    width/2 - 110,
+    575,
+    220,
+    45,
+    "#3B82F6",
+    "←"
+  );
+  
+}
+function updateAudioVolumes() {
+
+  bgMusic.setVolume(musicVolume);
+
+  sfxEat.setVolume(0.45 * sfxVolume);
+  sfxRare.setVolume(0.55 * sfxVolume);
+  sfxLegendary.setVolume(0.70 * sfxVolume);
+  sfxShield.setVolume(0.60 * sfxVolume);
+  sfxGameOver.setVolume(0.75 * sfxVolume);
+}
+
+function drawSettings() {
+
+  background(8, 10, 20);
+
+  drawGrid();
+
+  // =========================
+  // TÍTULO
+  // =========================
+  drawingContext.shadowBlur = 25;
+  drawingContext.shadowColor = "#8B5CF6";
+
+  fill("#8B5CF6");
+  textAlign(CENTER);
+  textSize(34);
+  text("CONFIGURAÇÕES", width/2, 55);
+
+  drawingContext.shadowBlur = 0;
+
+  fill(170);
+  textSize(13);
+  text("SYSTEM SETTINGS", width/2, 78);
+
+  // =========================
+  // PAINEL
+  // =========================
+  const panelX = width/2 - 150;
+  const panelW = 300;
+  const cardH = 58;
+
+  const items = [
+    ["🎵", "MÚSICA", floor(musicVolume * 100) + "%"],
+    ["🔊", "EFEITOS", floor(sfxVolume * 100) + "%"],
+    ["⚡", "FPS", gameFPS]
+  ];
+
+  for (let i = 0; i < items.length; i++) {
+
+    const y = 120 + i * 72;
+
+    // Card
+    fill(12, 20, 35, 230);
+    stroke("#334155");
     strokeWeight(1.5);
-
-    rect(cardX, y, cardW, cardH, 10);
-
-    drawingContext.shadowBlur = 0;
+    rect(panelX, y, panelW, cardH, 12);
 
     noStroke();
 
-    fill(cards[i][3]);
-    textAlign(LEFT, CENTER);
-    textSize(22);
-    text(cards[i][0], cardX + 15, y + 24);
-
-    fill(190);
-    textSize(11);
-    text(cards[i][1], cardX + 48, y + 16);
-
+    // Ícone
     fill(255);
+    textAlign(LEFT, CENTER);
+    textSize(24);
+    text(items[i][0], panelX + 18, y + 29);
+
+    // Nome
+    fill(180);
+    textSize(11);
+    text(items[i][1], panelX + 55, y + 18);
+
+    // Valor
+    fill("#22D3EE");
     textSize(18);
-    text(cards[i][2], cardX + 48, y + 33);
+    text(items[i][2], panelX + 240, y + 18);
+
+    // =========================
+    // SLIDER
+    // =========================
+
+    // Fundo
+    fill(40);
+    rect(panelX + 55, y + 40, 180, 6, 3);
+
+    // Valor do slider
+    let value =
+      i === 0 ? musicVolume :
+      i === 1 ? sfxVolume :
+      gameFPS / 12;
+
+    // Barra preenchida
+    fill("#8B5CF6");
+    rect(panelX + 55, y + 40, 180 * value, 6, 3);
+
+    // Posição da bolinha
+let knobX = panelX + 55 + (180 * value);
+let knobY = y + 43;
+
+// Hover
+let hover = dist(mouseX, mouseY, knobX, knobY) < 10;
+
+fill(hover ? "#E9D5FF" : 255);
+stroke("#8B5CF6");
+strokeWeight(hover ? 3 : 2);
+
+ellipse(knobX, knobY, hover ? 16 : 14);
+
+noStroke();
   }
 
-  // ===== BOTÃO VOLTAR =====
-  const backX = width/2 - 110;
-  const backY = 560;
-  const backW = 220;
-  const backH = 50;
+  // =========================
+  // BOTÃO VOLTAR
+  // =========================
+  drawMenuButton(
+    "VOLTAR",
+    width/2 - 100,
+    560,
+    200,
+    45,
+    "#3B82F6",
+    "←"
+  );
+}
+function mouseDragged() {
 
-  const hover =
-    mouseX >= backX &&
-    mouseX <= backX + backW &&
-    mouseY >= backY &&
-    mouseY <= backY + backH;
+  // Só funciona na tela de configurações
+  if (gameState !== "settings") return;
 
-  drawingContext.shadowBlur = hover ? 25 : 12;
-  drawingContext.shadowColor = "#3B82F6";
+  const panelX = width / 2 - 150;
 
-  fill(hover ? color(59,130,246,80) : color(12,22,40));
-  stroke("#3B82F6");
-  strokeWeight(2);
+  for (let i = 0; i < 3; i++) {
 
-  rect(backX, backY, backW, backH, 12);
+    const y = 120 + i * 72;
 
-  noStroke();
+    // Área do slider
+    if (
+      mouseY >= y + 34 &&
+      mouseY <= y + 50
+    ) {
 
-  fill(hover ? 255 : "#93C5FD");
-  textAlign(CENTER, CENTER);
-  textSize(22);
-  text("← VOLTAR", width/2, backY + 25);
+      let value = constrain(
+        (mouseX - (panelX + 55)) / 180,
+        0,
+        1
+      );
 
-  drawingContext.shadowBlur = 0;
+      if (i === 0) {
+        musicVolume = value;
+      }
+
+      else if (i === 1) {
+        sfxVolume = value;
+      }
+
+      else if (i === 2) {
+        gameFPS = round(6 + value * 6);
+        frameRate(gameFPS);
+      }
+
+      updateAudioVolumes();
+      saveSettings();
+    }
+  }
 }
 function drawPauseOverlay() {
 
+  // Escurece o jogo
   fill(0, 180);
   rect(0, 0, width, height);
 
-  fill(15, 25, 40);
+  // Painel principal
+  fill(15, 25, 40, 240);
   stroke("#22D3EE");
   strokeWeight(2);
 
-  rect(width/2 - 140, 150, 280, 260, 14);
+  rect(width/2 - 150, 130, 300, 320, 16);
 
   noStroke();
 
+  // Título
+  drawingContext.shadowBlur = 20;
+  drawingContext.shadowColor = "#22D3EE";
+
   fill("#22D3EE");
   textAlign(CENTER);
-  textSize(32);
-  text("PAUSADO", width/2, 190);
+  textSize(34);
+  text("PAUSADO", width/2, 170);
 
-  fill(180);
+  drawingContext.shadowBlur = 0;
+
+  // Subtítulo
+  fill(170);
   textSize(13);
-  text("Pressione ESC para continuar", width/2, 215);
+  text("Sistema em espera", width/2, 195);
 
+  // Botões
   drawMenuButton(
     "CONTINUAR",
     width/2 - 100,
-    250,
+    225,
     200,
     42,
     "#22D3EE",
@@ -1399,7 +1909,7 @@ function drawPauseOverlay() {
   drawMenuButton(
     "REINICIAR",
     width/2 - 100,
-    305,
+    280,
     200,
     42,
     "#F59E0B",
@@ -1407,16 +1917,52 @@ function drawPauseOverlay() {
   );
 
   drawMenuButton(
+    "CONFIGURAÇÕES",
+    width/2 - 100,
+    335,
+    200,
+    42,
+    "#8B5CF6",
+    "⚙"
+  );
+
+  drawMenuButton(
     "MENU",
     width/2 - 100,
-    360,
+    390,
     200,
     42,
     "#EF4444",
     "⌂"
   );
-}
 
+  // Rodapé
+  fill(120);
+  textSize(11);
+  text("ESC • Continuar", width/2, 442);
+}
+function getAchievementProgress(a){
+
+  if(a.type === "score")
+    return min(score, a.goal);
+
+  if(a.type === "fruits")
+    return min(totalFruits, a.goal);
+
+  if(a.type === "games")
+    return min(totalGames, a.goal);
+
+  if(a.type === "coins")
+    return min(coins, a.goal);
+
+  if(a.type === "highscore")
+    return min(highScore, a.goal);
+
+  if(a.type === "skins")
+  return min(unlockedSkins.length, a.goal);
+
+  return 0;
+}
 function drawGame() {
 
   background(10, 0, 25);
@@ -1427,37 +1973,37 @@ function drawGame() {
   drawGrid();
   updateLevel();
 
-  // Atualiza a cobra
-  snake.update();
-  if (isPaused) {
-  drawObstacles();
-  drawFood();
-  drawShield();
-
-  updateParticles();
-  updateFloatingTexts();
-
-  snake.show();
-  drawHUD();
-  drawPauseOverlay();
-
-  pop();
-  return;
-}
+  // =========================
+  // PAUSA
+  // =========================
+  if (!isPaused) {
+    snake.update();
+  }
 
   // =========================
   // MORTE
   // =========================
   if (snake.dead()) {
 
-    if (score > highScore) highScore = score;
+    // Soma tempo jogado
+    totalPlayTime += floor(
+      (millis() - gameStartTime) / 1000
+    );
+
+    if (score > highScore) {
+      highScore = score;
+    }
 
     saveGame();
+    saveStats();
 
-    if (bgMusic.isPlaying()) bgMusic.stop();
+    bgMusic.stop();
     sfxGameOver.play();
 
+    drawAchievementPopup();
+
     pop();
+
     gameState = "gameover";
     return;
   }
@@ -1465,75 +2011,134 @@ function drawGame() {
   // =========================
   // ESCUDO
   // =========================
-  if (shield) {
+  if (!isPaused) {
 
-    let head = snake.body[snake.body.length - 1];
+    if (shield) {
 
-    if (head.x === shield.x && head.y === shield.y) {
+      let head = snake.body[snake.body.length - 1];
 
-      shieldActive = true;
-      shield = null;
-    stats.shieldsCollected++;
-saveStats();
-      sfxShield.play();
+      if (head.x === shield.x && head.y === shield.y) {
 
-      createParticles(head.x + 10, head.y + 10, 20, color("#00E5FF"));
-      createFloatingText(head.x + 10, head.y, "ESCUDO", color("#00E5FF"));
+        shieldActive = true;
+        shield = null;
+
+        sfxShield.play();
+
+        createParticles(
+          head.x + 10,
+          head.y + 10,
+          20,
+          color("#00E5FF")
+        );
+
+        createFloatingText(
+          head.x + 10,
+          head.y,
+          "ESCUDO",
+          color("#00E5FF")
+        );
+      }
+    }
+
+    // Spawn
+    if (!shield && !shieldActive && random(200) < 1) {
+      createShield();
     }
   }
 
-  if (!shield && !shieldActive && random(200) < 1) {
-    createShield();
-  }
+  // =========================
+  // COMER FRUTA
+  // =========================
+  if (!isPaused && snake.eat(food)) {
 
-  // =========================
-  // FRUTA
-  // =========================
-  if (snake.eat(food)) {
-  stats.fruitsEaten++;
+    // NOVA ESTATÍSTICA
+    totalFruits++;
+
     if (legendaryFood) {
-    stats.legendaryEaten++;
+
       sfxLegendary.play();
       startShake(8, 10);
 
+      createParticles(
+        food.x + 10,
+        food.y + 10,
+        40,
+        color("#FFD700")
+      );
+
+      createFloatingText(
+        food.x + 10,
+        food.y,
+        "+100",
+        color("#FFD700")
+      );
+
       score += 100;
       coins += 50;
-      stats.totalBits += 50;
-      createParticles(food.x + 10, food.y + 10, 40, color("#FFD700"));
-      createFloatingText(food.x + 10, food.y, "+100", color("#FFD700"));
 
-      unlockAchievement("luckyOne", "LUCKY ONE");
+      unlockAchievement(
+        "luckyOne",
+        "LUCKY ONE"
+      );
 
-    } else if (rareFood) {
+    }
+
+    else if (rareFood) {
 
       sfxRare.play();
       startShake(4, 6);
 
+      createParticles(
+        food.x + 10,
+        food.y + 10,
+        22,
+        color("#00BFFF")
+      );
+
+      createFloatingText(
+        food.x + 10,
+        food.y,
+        "+50",
+        color("#00BFFF")
+      );
+
       score += 50;
       coins += 25;
-      stats.totalBits += 25;
-      createParticles(food.x + 10, food.y + 10, 22, color("#00BFFF"));
-      createFloatingText(food.x + 10, food.y, "+50", color("#00BFFF"));
 
-    } else {
+    }
+
+    else {
 
       sfxEat.play();
       startShake(2, 3);
 
-     score += 10;
-    coins += 5;
-    stats.totalBits += 5;
+      createParticles(
+        food.x + 10,
+        food.y + 10,
+        10,
+        color("#FF00AA")
+      );
 
-      createParticles(food.x + 10, food.y + 10, 10, color("#FF00AA"));
-      createFloatingText(food.x + 10, food.y, "+10", color("#FF00AA"));
+      createFloatingText(
+        food.x + 10,
+        food.y,
+        "+10",
+        color("#FF00AA")
+      );
+
+      score += 10;
+      coins += 5;
+
+      checkAchievements();
     }
 
-    checkAchievements();
-
-    if (score > highScore) highScore = score;
+    if (score > highScore) {
+      highScore = score;
+    }
 
     saveGame();
     saveStats();
+
     createFood();
   }
 
@@ -1544,16 +2149,23 @@ saveStats();
   drawFood();
   drawShield();
 
-  updateParticles();
-  updateFloatingTexts();
+  if (!isPaused) {
+    updateParticles();
+    updateFloatingTexts();
+  }
 
   snake.show();
-
   drawHUD();
+
   drawAchievementPopup();
-if (isPaused) {
-  drawPauseOverlay();
-}
+
+  // =========================
+  // MENU PAUSA
+  // =========================
+  if (isPaused) {
+    drawPauseOverlay();
+  }
+
   pop();
 }
 function mousePressed() {
@@ -1563,7 +2175,17 @@ function mousePressed() {
   // ======================================
   if (gameState === "menu") {
 
-    // JOGAR
+    // ⚙ CONFIGURAÇÕES
+    if (
+      mouseX >= 15 && mouseX <= 50 &&
+      mouseY >= 15 && mouseY <= 50
+    ) {
+      previousState = "menu";
+      gameState = "settings";
+      return;
+    }
+
+    // ▶ JOGAR
     if (
       mouseX >= width/2 - 120 &&
       mouseX <= width/2 + 120 &&
@@ -1574,7 +2196,7 @@ function mousePressed() {
       return;
     }
 
-    // SKINS
+    // 🎨 SKINS
     if (
       mouseX >= width/2 - 120 &&
       mouseX <= width/2 + 120 &&
@@ -1584,8 +2206,19 @@ function mousePressed() {
       gameState = "skins";
       return;
     }
+    // 🏆 CONQUISTAS
+if (
+  mouseX >= width/2 - 120 &&
+  mouseX <= width/2 + 120 &&
+  mouseY >= 410 &&
+  mouseY <= 460
+) {
+  resetAchievementAnimation();
+  gameState = "achievements";
+  return;
+}
 
-    // ESTATÍSTICAS
+    // 📊 ESTATÍSTICAS
     if (
       mouseX >= width/2 - 120 &&
       mouseX <= width/2 + 120 &&
@@ -1606,9 +2239,83 @@ function mousePressed() {
       mouseX >= width/2 - 100 &&
       mouseX <= width/2 + 100 &&
       mouseY >= 560 &&
-      mouseY <= 610
+      mouseY <= 605
     ) {
       gameState = "menu";
+      return;
+    }
+  }
+
+  // ======================================
+// CONQUISTAS
+// ======================================
+else if (gameState === "achievements") {
+
+  // VOLTAR
+  if (
+    mouseX >= width/2 - 100 &&
+    mouseX <= width/2 + 100 &&
+    mouseY >= 560 &&
+    mouseY <= 605
+  ) {
+    gameState = "menu";
+    return;
+  }
+
+}
+  // ======================================
+  // CONFIGURAÇÕES
+  // ======================================
+  else if (gameState === "settings") {
+
+    const panelX = width/2 - 150;
+
+    // SLIDERS
+    for (let i = 0; i < 3; i++) {
+
+      const y = 120 + i * 72;
+
+      if (
+        mouseX >= panelX + 55 &&
+        mouseX <= panelX + 235 &&
+        mouseY >= y + 34 &&
+        mouseY <= y + 50
+      ) {
+
+        let value = constrain(
+          (mouseX - (panelX + 55)) / 180,
+          0,
+          1
+        );
+
+        if (i === 0) musicVolume = value;
+        else if (i === 1) sfxVolume = value;
+        else if (i === 2) {
+          gameFPS = round(6 + value * 6);
+          frameRate(gameFPS);
+        }
+
+        updateAudioVolumes();
+        saveSettings();
+        return;
+      }
+    }
+
+    // ← VOLTAR
+    if (
+      mouseX >= width/2 - 100 &&
+      mouseX <= width/2 + 100 &&
+      mouseY >= 560 &&
+      mouseY <= 605
+    ) {
+
+      if (previousState === "pause") {
+        gameState = "playing";
+        isPaused = true;
+      } else {
+        gameState = "menu";
+      }
+
       return;
     }
   }
@@ -1628,7 +2335,7 @@ function mousePressed() {
 
     const startY = 110;
 
-    // VOLTAR
+    // ← VOLTAR
     if (
       mouseX >= 20 &&
       mouseX <= 120 &&
@@ -1666,7 +2373,7 @@ function mousePressed() {
       return;
     }
 
-    // Cards
+    // Comprar / Equipar
     const startIndex = skinPage * skinsPerPage;
     const endIndex =
       min(startIndex + skinsPerPage, skinCards.length);
@@ -1711,28 +2418,24 @@ function mousePressed() {
   // ======================================
   else if (gameState === "playing" && isPaused) {
 
-    // CONTINUAR
+    // ▶ CONTINUAR
     if (
       mouseX >= width/2 - 100 &&
       mouseX <= width/2 + 100 &&
-      mouseY >= 250 &&
-      mouseY <= 292
+      mouseY >= 225 &&
+      mouseY <= 267
     ) {
       isPaused = false;
-
-if (!bgMusic.isPlaying()) {
-  bgMusic.play();
-}
-
-return;
+      bgMusic.play();
+      return;
     }
 
-    // REINICIAR
+    // ↻ REINICIAR
     if (
       mouseX >= width/2 - 100 &&
       mouseX <= width/2 + 100 &&
-      mouseY >= 305 &&
-      mouseY <= 347
+      mouseY >= 280 &&
+      mouseY <= 322
     ) {
       isPaused = false;
       bgMusic.stop();
@@ -1740,19 +2443,27 @@ return;
       return;
     }
 
-    // MENU PRINCIPAL
+    // ⚙ CONFIGURAÇÕES
     if (
       mouseX >= width/2 - 100 &&
       mouseX <= width/2 + 100 &&
-      mouseY >= 360 &&
-      mouseY <= 402
+      mouseY >= 335 &&
+      mouseY <= 377
+    ) {
+      previousState = "pause";
+      gameState = "settings";
+      return;
+    }
+
+    // ⌂ MENU
+    if (
+      mouseX >= width/2 - 100 &&
+      mouseX <= width/2 + 100 &&
+      mouseY >= 390 &&
+      mouseY <= 432
     ) {
       isPaused = false;
-
-      if (bgMusic.isPlaying()) {
-        bgMusic.stop();
-      }
-
+      bgMusic.stop();
       gameState = "menu";
       return;
     }
@@ -2187,34 +2898,42 @@ function drawShield() {
 
   if (!shield) return;
 
-  drawingContext.shadowBlur = 25;
-  drawingContext.shadowColor = "#00AAFF";
+  const cx = shield.x + scaleSize / 2;
+  const cy = shield.y + scaleSize / 2;
 
+  drawingContext.shadowBlur = 28;
+  drawingContext.shadowColor = "#22D3EE";
+
+  // Aura externa
   noStroke();
+  fill(34, 211, 238, 45);
+  ellipse(cx, cy, scaleSize + 10);
 
-  fill("#00AAFF");
+  // Hexágono
+  fill("#22D3EE");
 
-  ellipse(
-    shield.x + scaleSize / 2,
-    shield.y + scaleSize / 2,
-    scaleSize + 4
-  );
+  beginShape();
 
-  fill(255);
+  for (let i = 0; i < 6; i++) {
 
-  textAlign(CENTER, CENTER);
-  textSize(12);
+    let angle = TWO_PI / 6 * i - PI / 6;
 
-  text(
-    "🛡",
-    shield.x + scaleSize / 2,
-    shield.y + scaleSize / 2
-  );
+    vertex(
+      cx + cos(angle) * 11,
+      cy + sin(angle) * 11
+    );
 
-  // Reset gráfico
+  }
+
+  endShape(CLOSE);
+
+  // Núcleo
+  fill("#E0F7FF");
+  ellipse(cx, cy, 7);
+
+  // Reset
   drawingContext.shadowBlur = 0;
   drawingContext.shadowColor = "transparent";
-  textAlign(LEFT, BASELINE);
 
 }
 function drawGrid() {
@@ -2238,71 +2957,121 @@ function drawGrid() {
 }
 function drawFood() {
 
+  const cx = food.x + scaleSize / 2;
+  const cy = food.y + scaleSize / 2;
+
   noStroke();
 
-  // 👑 LENDÁRIA
+  // =========================
+  // ☀️ LENDÁRIA
+  // =========================
   if (legendaryFood) {
 
-    drawingContext.shadowBlur = 35;
+    const pulse = sin(frameCount * 0.15) * 3;
+    const rot = frameCount * 0.03;
+    const floatY = sin(frameCount * 0.08) * 2;
+
+    push();
+
+    translate(cx, cy + floatY);
+
+    drawingContext.shadowBlur = 42+ pulse;
     drawingContext.shadowColor = "#FFD700";
 
-    fill("#FFD700");
+    // Aura
+    noStroke();
+    fill(255, 215, 0, 35);
+    ellipse(0, 0, 34 + pulse);
 
-    ellipse(
-      food.x + scaleSize / 2,
-      food.y + scaleSize / 2,
-      18
-    );
+    fill(255, 215, 0, 70);
+    ellipse(0, 0, 24 + pulse);
 
-    fill(255);
-    textAlign(CENTER, CENTER);
-    textSize(12);
+    // Anel giratório
+    push();
+    rotate(rot);
 
-    text(
-      "★",
-      food.x + scaleSize / 2,
-      food.y + scaleSize / 2
-    );
+    stroke("#FFD700");
+    strokeWeight(2);
+    noFill();
+    ellipse(0, 0, 28);
 
+    line(-14, 0, 14, 0);
+    line(0, -14, 0, 14);
+
+    pop();
+
+    // Raios
+    stroke("#FFE066");
+    strokeWeight(2);
+
+    for (let i = 0; i < 8; i++) {
+      const a = TWO_PI / 8 * i + rot;
+      line(
+        cos(a) * 14,
+        sin(a) * 14,
+        cos(a) * 20,
+        sin(a) * 20
+      );
+    }
+
+    // Núcleo
+    noStroke();
+    fill("#FFF8DC");
+    ellipse(0, 0, 12 + pulse * 0.3);
+
+    fill("#FFFFFF");
+    ellipse(0, 0, 5);
+
+    pop();
   }
 
-  // 💙 RARA
+  // =========================
+  // 🫐 RARA
+  // =========================
   else if (rareFood) {
 
-    drawingContext.shadowBlur = 25;
-    drawingContext.shadowColor = "#00BFFF";
+    drawingContext.shadowBlur = 22;
+    drawingContext.shadowColor = "#7C3AED";
 
-    fill("#00BFFF");
+    fill("#8B5CF6");
+    ellipse(cx, cy, 15);
 
-    ellipse(
-      food.x + scaleSize / 2,
-      food.y + scaleSize / 2,
-      16
-    );
+    fill(255, 255, 255, 180);
+    ellipse(cx - 3, cy - 3, 4);
 
+    fill("#22C55E");
+    ellipse(cx + 3, cy - 8, 6, 3);
   }
 
+  // =========================
   // 🍎 COMUM
+  // =========================
   else {
 
     drawingContext.shadowBlur = 18;
-    drawingContext.shadowColor = "#FF00AA";
+    drawingContext.shadowColor = "#EF4444";
 
-    fill("#FF00AA");
+    fill("#EF4444");
+    ellipse(cx - 3, cy, 10, 12);
+    ellipse(cx + 3, cy, 10, 12);
+    ellipse(cx, cy + 2, 13, 10);
 
-    ellipse(
-      food.x + scaleSize / 2,
-      food.y + scaleSize / 2,
-      14
-    );
+    stroke("#6B3E26");
+    strokeWeight(2);
+    line(cx, cy - 8, cx, cy - 12);
 
+    noStroke();
+
+    fill("#22C55E");
+    ellipse(cx + 4, cy - 9, 6, 3);
+
+    fill(255, 255, 255, 160);
+    ellipse(cx - 4, cy - 2, 3);
   }
 
-  // Reset
   drawingContext.shadowBlur = 0;
   drawingContext.shadowColor = "transparent";
-  textAlign(LEFT, BASELINE);
-
+  strokeWeight(1);
 }
 function getSkinName() {
 
@@ -2650,7 +3419,14 @@ function keyPressed() {
 
       return false; // evita sair da tela cheia
     }
-
+// Voltar das configurações
+if (
+  keyCode === ESCAPE &&
+  gameState === "settings"
+) {
+  gameState = "menu";
+  return false;
+}
     // Voltar da loja
     if (gameState === "skins") {
       gameState = "menu";
