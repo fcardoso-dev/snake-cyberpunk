@@ -9,7 +9,7 @@ let totalFruits = 0;
 let totalGames = 0;
 let totalPlayTime = 0;   // segundos
 let gameStartTime = 0;
-let gameState = "boot";
+let gameState = "boot"
 // novo estado
 // gameState = "achievements"
 const achievementList = [
@@ -62,6 +62,7 @@ let bootProgress = 0;
 let bootFinished = false;
 let isPaused = true;
 let previousState = "menu";
+let favoriteSkin = "rgb";
 let snake;
 let food;
 let shield = null;
@@ -76,7 +77,22 @@ let menuSnakeY = 520;
 let menuSnakeSpeed = 10;
 let score = 0;
 let highScore = 0;
+
+// =========================
+// SISTEMA DE COMBO
+// =========================
+
+let combo = 0;
+let comboTimer = 0;
+let comboLastUpdate = 0;
+
+const comboTimeLimit = 3000;
+
+// =========================
+// SISTEMA DE LEVEL
+// =========================
 let level = 1;
+
 let coins = 0;
 let menuParticles = [];
 let maxMenuParticles = 45;
@@ -94,6 +110,7 @@ let sfxRare;
 let sfxLegendary;
 let sfxShield;
 let sfxGameOver;
+let trailParticles = [];
 let bgMusic;
 let debugMode = true;
 // =========================
@@ -122,6 +139,43 @@ let achievements = {
   neonMaster: false
 
 };
+let dailyMissions = [
+  {
+    id: "fruitHunter",
+    icon: "🍎",
+    title: "COLETOR",
+    description: "Coma 50 frutas",
+    goal: 50,
+    progress: 0,
+    reward: 100,
+    completed: false,
+    claimed: false
+  },
+
+  {
+    id: "scoreRush",
+    icon: "⚡",
+    title: "CORREDOR",
+    description: "Faça 500 pontos",
+    goal: 500,
+    progress: 0,
+    reward: 150,
+    completed: false,
+    claimed: false
+  },
+
+  {
+    id: "legendHunter",
+    icon: "👑",
+    title: "CAÇADOR LENDÁRIO",
+    description: "Pegue 1 fruta lendária",
+    goal: 1,
+    progress: 0,
+    reward: 250,
+    completed: false,
+    claimed: false
+  }
+];
 let achievementPopup = null;
 let achievementTimer = 0;
 let skinCards = [
@@ -343,6 +397,142 @@ drawingContext.shadowBlur = 0;
 drawingContext.shadowColor = "transparent";
 }
 
+function createTrailParticle(x,y){
+
+  if(trailParticles.length > 180){
+    trailParticles.shift();
+  }
+
+  trailParticles.push({
+    x,
+    y,
+    life: 35,
+    size: random(7,12),
+    hue: random(255),
+    vx: random(-0.6,0.6),
+    vy: random(-0.6,0.6)
+  });
+
+}
+
+function drawTrailParticles(){
+
+  noStroke();
+
+  for(let i = trailParticles.length - 1; i >= 0; i--){
+
+    let p = trailParticles[i];
+
+    p.life--;
+
+    p.x += p.vx;
+    p.y += p.vy;
+
+    if(p.life <= 0){
+      trailParticles.splice(i,1);
+      continue;
+    }
+
+    const alpha = map(p.life,0,35,0,255);
+    const size = map(p.life,0,35,0,p.size);
+
+    drawingContext.shadowBlur = 18;
+
+    switch(currentSkin){
+
+      // 🌈 RGB
+      case "rgbSpectrum":
+
+        colorMode(HSB,255);
+
+        drawingContext.shadowColor = "#FFFFFF";
+
+        fill(
+          (p.hue + frameCount * 3) % 255,
+          255,
+          255,
+          alpha
+        );
+
+        ellipse(p.x,p.y,size);
+
+        colorMode(RGB,255);
+
+        break;
+
+      // ☣ Toxic
+      case "toxicGreen":
+
+        drawingContext.shadowColor = "#39FF14";
+
+        fill(57,255,20,alpha*0.45);
+        ellipse(p.x,p.y,size+8);
+
+        fill(120,255,120,alpha*0.7);
+        ellipse(p.x,p.y,size);
+
+        break;
+
+      // 🔥 Inferno
+      case "infernoRed":
+
+        drawingContext.shadowColor = "#FF4D2D";
+
+        fill(255,80,30,alpha);
+        ellipse(p.x,p.y,size);
+
+        fill(255,220,120,alpha*0.6);
+        ellipse(p.x,p.y,size*0.45);
+
+        break;
+
+      // 🌌 Galaxy
+      case "galaxyStar":
+
+        drawingContext.shadowColor = "#A78BFA";
+
+        fill(255,255,255,alpha);
+        ellipse(p.x,p.y,2.5);
+
+        fill(167,139,250,alpha*0.7);
+        ellipse(p.x,p.y,5);
+
+        break;
+
+      // ⚡ Cyber
+      case "cyberPulse":
+
+        drawingContext.shadowColor = "#00F5FF";
+
+        fill(0,245,255,alpha);
+
+        push();
+        translate(p.x,p.y);
+        rotate(frameCount*0.1);
+        rectMode(CENTER);
+        rect(0,0,size,size);
+        pop();
+
+        break;
+
+      // 💙 Demais skins
+      default:
+
+        const c = color(getSkinColor(currentSkin));
+        c.setAlpha(alpha);
+
+        drawingContext.shadowColor = getSkinColor(currentSkin);
+
+        fill(c);
+        ellipse(p.x,p.y,size);
+
+    }
+
+    drawingContext.shadowBlur = 0;
+
+  }
+
+}
 function createMenuParticle() {
 
   let particle = {
@@ -489,6 +679,197 @@ function updateShake() {
   shakeDuration--;
 
   shakeIntensity *= 0.92;
+
+}
+function drawMissionIndicator() {
+
+  let claimable = 0;
+
+  for (let mission of dailyMissions) {
+
+    if (mission.completed && !mission.claimed) {
+      claimable++;
+    }
+
+  }
+
+  // Nenhuma recompensa disponível
+  if (claimable === 0) return;
+
+  const x = width / 2 + 225;
+  const y = 400;
+
+  push();
+
+  // Pulsação
+  const pulse =
+    1 + sin(frameCount * 0.12) * 0.08;
+
+  translate(x, y);
+  scale(pulse);
+
+  // Glow
+  drawingContext.shadowBlur = 18;
+  drawingContext.shadowColor = "#FF304F";
+
+  fill("#FF304F");
+  noStroke();
+
+  circle(0, 0, 24);
+
+  drawingContext.shadowBlur = 0;
+
+  // Número
+  fill("#FFFFFF");
+
+  textAlign(CENTER, CENTER);
+  textSize(11);
+  textStyle(BOLD);
+
+  text(
+    claimable,
+    0,
+    0
+  );
+
+  pop();
+
+}
+function saveDailyMissions() {
+
+  localStorage.setItem(
+    "snakeDailyMissions",
+    JSON.stringify(dailyMissions)
+  );
+
+}
+function loadDailyMissions() {
+
+  const today = getTodayKey();
+
+  const savedDate =
+    localStorage.getItem("snakeDailyMissionDate");
+
+  const saved =
+    localStorage.getItem("snakeDailyMissions");
+
+  // =========================
+  // NOVO DIA
+  // =========================
+
+  if (savedDate !== today) {
+
+    dailyMissions.forEach(mission => {
+
+      mission.progress = 0;
+      mission.completed = false;
+      mission.claimed = false;
+
+    });
+
+    localStorage.setItem(
+      "snakeDailyMissionDate",
+      today
+    );
+
+    saveDailyMissions();
+
+    return;
+
+  }
+
+  // =========================
+  // CARREGAR MISSÕES
+  // =========================
+
+  if (saved) {
+
+    try {
+
+      const parsed = JSON.parse(saved);
+
+      if (Array.isArray(parsed)) {
+
+        dailyMissions = parsed;
+
+      }
+
+    } catch (error) {
+
+      console.log(
+        "Erro ao carregar missões diárias:",
+        error
+      );
+
+    }
+
+  }
+
+}
+function updateDailyMission(id, amount = 1) {
+
+  const mission = dailyMissions.find(m => m.id === id);
+
+  if (!mission) return;
+
+  // Se já foi resgatada, não aumenta mais
+  if (mission.claimed) return;
+
+  mission.progress += amount;
+
+  // Limita ao objetivo
+  if (mission.progress >= mission.goal) {
+
+    mission.progress = mission.goal;
+    mission.completed = true;
+
+  }
+
+  saveDailyMissions();
+
+}
+function claimDailyMission(id) {
+
+  const mission = dailyMissions.find(
+    m => m.id === id
+  );
+
+  if (!mission) return;
+
+  // Ainda não completou
+  if (!mission.completed) return;
+
+  // Já foi resgatada
+  if (mission.claimed) return;
+
+  // =========================
+  // ENTREGA A RECOMPENSA
+  // =========================
+
+  coins += mission.reward;
+
+  mission.claimed = true;
+
+  // =========================
+  // SALVAR
+  // =========================
+
+  saveGame();
+  saveStats();
+  saveDailyMissions();
+
+}
+function getTodayKey() {
+
+  const d = new Date();
+
+  return (
+    d.getFullYear() +
+    "-" +
+    String(d.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(d.getDate()).padStart(2, "0")
+  );
 
 }
 function drawGameOver() {
@@ -774,6 +1155,10 @@ function saveGame() {
   "snakeAchievements",
   JSON.stringify(achievements)
 );
+localStorage.setItem(
+  "snakeFavoriteSkin",
+  favoriteSkin
+);
 }
 function loadGame() {
 
@@ -817,6 +1202,15 @@ if(savedAchievements !== null){
     unlockedSkins = ["neonBlue"];
   }
 }
+favoriteSkin =
+  localStorage.getItem("snakeFavoriteSkin")
+  || "rgb";
+}
+function setFavoriteSkin(id){
+
+  favoriteSkin = id;
+
+  saveGame();
 
 }
 function resetAchievementAnimation(){
@@ -1037,6 +1431,7 @@ function setup() {
   // =========================
   loadGame();
   loadStats();
+  loadDailyMissions();
 
   // NOVO
   loadSettings();
@@ -1257,11 +1652,60 @@ text("⚙", 32, 33);
   const btnW = 240;
   const btnH = 50;
 
-  drawMenuButton("JOGAR", btnX, 200, btnW, btnH, "#00F5FF", "▶");
-  drawMenuButton("SKINS", btnX, 270, btnW, btnH, "#FF00D4", "🎨");
-  drawMenuButton("ESTATÍSTICAS", btnX, 340, btnW, btnH, "#3B82F6", "📊");
-  drawMenuButton("CONQUISTAS",width/2 - 120,410,240,50,"#F59E0B","🏆");
+  drawMenuButton(
+  "JOGAR",
+  btnX,
+  200,
+  btnW,
+  btnH,
+  "#00F5FF",
+  "▶"
+);
 
+drawMenuButton(
+  "SKINS",
+  btnX,
+  270,
+  btnW,
+  btnH,
+  "#FF00D4",
+  "🎨"
+);
+
+drawMenuButton(
+  "ESTATÍSTICAS",
+  btnX,
+  340,
+  btnW,
+  btnH,
+  "#3B82F6",
+  "📊"
+);
+
+// =========================
+// CONQUISTAS + MISSÕES
+// =========================
+
+drawMenuButton(
+  "CONQUISTAS",
+  width / 2 - 245,
+  410,
+  230,
+  50,
+  "#F59E0B",
+  "🏆"
+);
+
+drawMenuButton(
+  "MISSÕES",
+  width / 2 + 15,
+  410,
+  230,
+  50,
+  "#22D3EE",
+  "🎯"
+);
+drawMissionIndicator();
   // =========================
   // PAINEL PLAYER
   // =========================
@@ -1379,6 +1823,11 @@ function draw() {
   return;
   }
 
+  if (gameState === "missions") {
+  drawMissions();
+  return;
+}
+
   if (gameState === "settings") {
     drawSettings();
     return;
@@ -1393,6 +1842,395 @@ function draw() {
     drawGameOver();
     return;
   }
+}
+function drawMissions() {
+
+  background(6, 8, 18);
+
+  // =========================
+  // GRID
+  // =========================
+
+  drawGrid();
+
+  // =========================
+  // TÍTULO
+  // =========================
+
+  push();
+
+  textAlign(CENTER, CENTER);
+
+  drawingContext.shadowBlur = 25;
+  drawingContext.shadowColor = "#00E5FF";
+
+  fill("#00E5FF");
+  textSize(34);
+  textStyle(BOLD);
+
+  text("MISSÕES", width / 2, 55);
+
+  drawingContext.shadowBlur = 0;
+
+  fill("#64748B");
+  textSize(12);
+  textStyle(NORMAL);
+
+  text(
+    "DAILY MISSIONS",
+    width / 2,
+    82
+  );
+
+  pop();
+
+  // =========================
+  // CARDS
+  // =========================
+
+  const cardW = 680;
+  const cardH = 125;
+
+  const startX = (width - cardW) / 2;
+  const startY = 115;
+  const gap = 18;
+
+  dailyMissions.forEach((mission, index) => {
+
+    const x = startX;
+    const y = startY + index * (cardH + gap);
+
+    drawMissionCard(
+      mission,
+      x,
+      y,
+      cardW,
+      cardH
+    );
+
+  });
+
+  // =========================
+  // VOLTAR
+  // =========================
+
+  push();
+
+  const backW = 150;
+  const backH = 42;
+
+  const backX = width / 2 - backW / 2;
+  const backY = 620;
+
+  drawingContext.shadowBlur = 15;
+  drawingContext.shadowColor = "#FF00AA";
+
+  fill(20, 10, 35);
+  stroke("#FF00AA");
+  strokeWeight(2);
+
+  rect(
+    backX,
+    backY,
+    backW,
+    backH,
+    8
+  );
+
+  drawingContext.shadowBlur = 0;
+
+  noStroke();
+
+  fill("#FFFFFF");
+  textAlign(CENTER, CENTER);
+  textSize(14);
+  textStyle(BOLD);
+
+  text(
+    "VOLTAR",
+    width / 2,
+    backY + backH / 2
+  );
+
+  pop();
+
+}
+function drawMissionCard(mission, x, y, w, h) {
+
+  const completed = mission.completed;
+  const claimed = mission.claimed;
+
+  // =========================
+  // CARD
+  // =========================
+
+  push();
+
+  drawingContext.shadowBlur = 18;
+
+  if (completed && !claimed) {
+    drawingContext.shadowColor = "#FFD700";
+  } else {
+    drawingContext.shadowColor = "#00E5FF";
+  }
+
+  fill(12, 15, 28);
+
+  stroke(
+    completed && !claimed
+      ? "#FFD700"
+      : "#24324A"
+  );
+
+  strokeWeight(2);
+
+  rect(
+    x,
+    y,
+    w,
+    h,
+    12
+  );
+
+  drawingContext.shadowBlur = 0;
+
+  // =========================
+  // ÍCONE
+  // =========================
+
+  noStroke();
+
+  textAlign(CENTER, CENTER);
+
+  textSize(38);
+
+  text(
+    mission.icon,
+    x + 55,
+    y + 45
+  );
+
+  // =========================
+  // TÍTULO
+  // =========================
+
+  textAlign(LEFT, CENTER);
+
+  fill("#FFFFFF");
+
+  textSize(17);
+  textStyle(BOLD);
+
+  text(
+    mission.title,
+    x + 100,
+    y + 28
+  );
+
+  // =========================
+  // DESCRIÇÃO
+  // =========================
+
+  fill("#64748B");
+
+  textSize(12);
+  textStyle(NORMAL);
+
+  text(
+    mission.description,
+    x + 100,
+    y + 50
+  );
+
+  // =========================
+  // PROGRESSO
+  // =========================
+
+  const barX = x + 100;
+  const barY = y + 72;
+
+  const barW = 350;
+  const barH = 12;
+
+  // Fundo
+  fill(25, 30, 45);
+
+  rect(
+    barX,
+    barY,
+    barW,
+    barH,
+    6
+  );
+
+  // Progresso
+  const progress =
+    constrain(
+      mission.progress / mission.goal,
+      0,
+      1
+    );
+
+  if (progress > 0) {
+
+    drawingContext.shadowBlur = 12;
+
+    drawingContext.shadowColor =
+      completed
+        ? "#FFD700"
+        : "#00E5FF";
+
+    fill(
+      completed
+        ? "#FFD700"
+        : "#00E5FF"
+    );
+
+    rect(
+      barX,
+      barY,
+      barW * progress,
+      barH,
+      6
+    );
+
+    drawingContext.shadowBlur = 0;
+
+  }
+
+  // =========================
+  // TEXTO DO PROGRESSO
+  // =========================
+
+  fill("#CBD5E1");
+
+  textSize(11);
+
+  text(
+    `${mission.progress} / ${mission.goal}`,
+    barX + barW + 12,
+    barY + 6
+  );
+
+  // =========================
+  // RECOMPENSA
+  // =========================
+
+  textAlign(LEFT, CENTER);
+
+  fill("#FFD700");
+
+  textSize(12);
+  textStyle(BOLD);
+
+  text(
+    `💰 +${mission.reward}`,
+    x + 100,
+    y + 101
+  );
+
+  // =========================
+  // STATUS
+  // =========================
+
+  const buttonW = 125;
+  const buttonH = 38;
+
+  const buttonX = x + w - buttonW - 20;
+  const buttonY = y + 43;
+
+  if (claimed) {
+
+    fill("#334155");
+    stroke("#475569");
+
+    rect(
+      buttonX,
+      buttonY,
+      buttonW,
+      buttonH,
+      7
+    );
+
+    noStroke();
+
+    fill("#94A3B8");
+
+    textAlign(CENTER, CENTER);
+    textSize(11);
+
+    text(
+      "RESGATADA",
+      buttonX + buttonW / 2,
+      buttonY + buttonH / 2
+    );
+
+  }
+
+  else if (completed) {
+
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = "#FFD700";
+
+    fill("#FFD700");
+    stroke("#FFE98A");
+
+    rect(
+      buttonX,
+      buttonY,
+      buttonW,
+      buttonH,
+      7
+    );
+
+    drawingContext.shadowBlur = 0;
+
+    noStroke();
+
+    fill("#120F00");
+
+    textAlign(CENTER, CENTER);
+    textSize(12);
+    textStyle(BOLD);
+
+    text(
+      "RESGATAR",
+      buttonX + buttonW / 2,
+      buttonY + buttonH / 2
+    );
+
+  }
+
+  else {
+
+    fill(18, 25, 40);
+    stroke("#334155");
+
+    rect(
+      buttonX,
+      buttonY,
+      buttonW,
+      buttonH,
+      7
+    );
+
+    noStroke();
+
+    fill("#64748B");
+
+    textAlign(CENTER, CENTER);
+    textSize(11);
+
+    text(
+      "EM ANDAMENTO",
+      buttonX + buttonW / 2,
+      buttonY + buttonH / 2
+    );
+
+  }
+
+  pop();
+
 }
 function drawAchievements() {
 
@@ -1974,10 +2812,41 @@ function drawGame() {
   updateLevel();
 
   // =========================
-  // PAUSA
+  // PAUSA / UPDATE
   // =========================
   if (!isPaused) {
+
     snake.update();
+
+    // Cria o rastro da skin
+    const head = snake.body[snake.body.length - 1];
+    // =========================
+// TIMER REAL DO COMBO
+// =========================
+
+if (combo > 0) {
+
+  const now = millis();
+
+  comboTimer -=
+    now - comboLastUpdate;
+
+  comboLastUpdate = now;
+
+  if (comboTimer <= 0) {
+
+    combo = 0;
+    comboTimer = 0;
+
+  }
+
+}
+
+createTrailParticle(
+  head.x + scaleSize / 2,
+  head.y + scaleSize / 2
+);
+
   }
 
   // =========================
@@ -1985,7 +2854,6 @@ function drawGame() {
   // =========================
   if (snake.dead()) {
 
-    // Soma tempo jogado
     totalPlayTime += floor(
       (millis() - gameStartTime) / 1000
     );
@@ -2037,10 +2905,11 @@ function drawGame() {
           "ESCUDO",
           color("#00E5FF")
         );
+
       }
     }
 
-    // Spawn
+    // Spawn do escudo
     if (!shield && !shieldActive && random(200) < 1) {
       createShield();
     }
@@ -2051,86 +2920,124 @@ function drawGame() {
   // =========================
   if (!isPaused && snake.eat(food)) {
 
-    // NOVA ESTATÍSTICA
     totalFruits++;
+    updateDailyMission("fruitHunter", 1);
+      // =========================
+  // COMBO
+  // =========================
+
+  combo++;
+
+comboTimer = comboTimeLimit;
+comboLastUpdate = millis();
 
     if (legendaryFood) {
 
-      sfxLegendary.play();
-      startShake(8, 10);
+  sfxLegendary.play();
+  startShake(8, 10);
 
-      createParticles(
-        food.x + 10,
-        food.y + 10,
-        40,
-        color("#FFD700")
-      );
+  const points =
+    round(100 * getComboMultiplier());
 
-      createFloatingText(
-        food.x + 10,
-        food.y,
-        "+100",
-        color("#FFD700")
-      );
+  createParticles(
+    food.x + 10,
+    food.y + 10,
+    40,
+    color("#FFD700")
+  );
 
-      score += 100;
-      coins += 50;
+  createFloatingText(
+    food.x + 10,
+    food.y,
+    "+" + points,
+    color("#FFD700")
+  );
 
-      unlockAchievement(
-        "luckyOne",
-        "LUCKY ONE"
-      );
+  score += points;
+  coins += 50;
 
-    }
+  updateDailyMission(
+    "legendHunter",
+    1
+  );
+
+  updateDailyMission(
+    "scoreRush",
+    points
+  );
+
+  unlockAchievement(
+    "luckyOne",
+    "LUCKY ONE"
+  );
+
+}
 
     else if (rareFood) {
 
-      sfxRare.play();
-      startShake(4, 6);
+  sfxRare.play();
+  startShake(4, 6);
 
-      createParticles(
-        food.x + 10,
-        food.y + 10,
-        22,
-        color("#00BFFF")
-      );
+  const points =
+    round(50 * getComboMultiplier());
 
-      createFloatingText(
-        food.x + 10,
-        food.y,
-        "+50",
-        color("#00BFFF")
-      );
+  createParticles(
+    food.x + 10,
+    food.y + 10,
+    22,
+    color("#00BFFF")
+  );
 
-      score += 50;
-      coins += 25;
+  createFloatingText(
+    food.x + 10,
+    food.y,
+    "+" + points,
+    color("#00BFFF")
+  );
 
-    }
+  score += points;
+  coins += 25;
+
+  updateDailyMission(
+    "scoreRush",
+    points
+  );
+
+}
 
     else {
 
-      sfxEat.play();
-      startShake(2, 3);
+  sfxEat.play();
+  startShake(2, 3);
 
-      createParticles(
-        food.x + 10,
-        food.y + 10,
-        10,
-        color("#FF00AA")
-      );
+  const points =
+    round(10 * getComboMultiplier());
 
-      createFloatingText(
-        food.x + 10,
-        food.y,
-        "+10",
-        color("#FF00AA")
-      );
+  createParticles(
+    food.x + 10,
+    food.y + 10,
+    10,
+    color("#FF00AA")
+  );
 
-      score += 10;
-      coins += 5;
+  createFloatingText(
+    food.x + 10,
+    food.y,
+    "+" + points,
+    color("#FF00AA")
+  );
 
-      checkAchievements();
-    }
+  score += points;
+  coins += 5;
+
+  updateDailyMission(
+    "scoreRush",
+    points
+  );
+
+  checkAchievements();
+
+}
 
     if (score > highScore) {
       highScore = score;
@@ -2140,12 +3047,18 @@ function drawGame() {
     saveStats();
 
     createFood();
+
   }
 
   // =========================
   // DESENHO
   // =========================
+
   drawObstacles();
+
+  // ✨ Rastro primeiro
+  drawTrailParticles();
+
   drawFood();
   drawShield();
 
@@ -2154,19 +3067,24 @@ function drawGame() {
     updateFloatingTexts();
   }
 
+  // Cobra por cima do rastro
   snake.show();
+
   drawHUD();
+
+  drawComboHUD();
 
   drawAchievementPopup();
 
   // =========================
-  // MENU PAUSA
+  // PAUSA
   // =========================
   if (isPaused) {
     drawPauseOverlay();
   }
 
   pop();
+
 }
 function mousePressed() {
 
@@ -2187,8 +3105,8 @@ function mousePressed() {
 
     // ▶ JOGAR
     if (
-      mouseX >= width/2 - 120 &&
-      mouseX <= width/2 + 120 &&
+      mouseX >= width / 2 - 120 &&
+      mouseX <= width / 2 + 120 &&
       mouseY >= 200 &&
       mouseY <= 250
     ) {
@@ -2198,34 +3116,46 @@ function mousePressed() {
 
     // 🎨 SKINS
     if (
-      mouseX >= width/2 - 120 &&
-      mouseX <= width/2 + 120 &&
+      mouseX >= width / 2 - 120 &&
+      mouseX <= width / 2 + 120 &&
       mouseY >= 270 &&
       mouseY <= 320
     ) {
       gameState = "skins";
       return;
     }
-    // 🏆 CONQUISTAS
-if (
-  mouseX >= width/2 - 120 &&
-  mouseX <= width/2 + 120 &&
-  mouseY >= 410 &&
-  mouseY <= 460
-) {
-  resetAchievementAnimation();
-  gameState = "achievements";
-  return;
-}
 
     // 📊 ESTATÍSTICAS
     if (
-      mouseX >= width/2 - 120 &&
-      mouseX <= width/2 + 120 &&
+      mouseX >= width / 2 - 120 &&
+      mouseX <= width / 2 + 120 &&
       mouseY >= 340 &&
       mouseY <= 390
     ) {
       gameState = "stats";
+      return;
+    }
+
+    // 🏆 CONQUISTAS
+    if (
+      mouseX >= width / 2 - 245 &&
+      mouseX <= width / 2 - 15 &&
+      mouseY >= 410 &&
+      mouseY <= 460
+    ) {
+      resetAchievementAnimation();
+      gameState = "achievements";
+      return;
+    }
+
+    // 🎯 MISSÕES
+    if (
+      mouseX >= width / 2 + 15 &&
+      mouseX <= width / 2 + 245 &&
+      mouseY >= 410 &&
+      mouseY <= 460
+    ) {
+      gameState = "missions";
       return;
     }
   }
@@ -2236,8 +3166,8 @@ if (
   else if (gameState === "stats") {
 
     if (
-      mouseX >= width/2 - 100 &&
-      mouseX <= width/2 + 100 &&
+      mouseX >= width / 2 - 100 &&
+      mouseX <= width / 2 + 100 &&
       mouseY >= 560 &&
       mouseY <= 605
     ) {
@@ -2247,28 +3177,111 @@ if (
   }
 
   // ======================================
-// CONQUISTAS
-// ======================================
-else if (gameState === "achievements") {
+  // CONQUISTAS
+  // ======================================
+  else if (gameState === "achievements") {
 
-  // VOLTAR
-  if (
-    mouseX >= width/2 - 100 &&
-    mouseX <= width/2 + 100 &&
-    mouseY >= 560 &&
-    mouseY <= 605
-  ) {
-    gameState = "menu";
-    return;
+    if (
+      mouseX >= width / 2 - 100 &&
+      mouseX <= width / 2 + 100 &&
+      mouseY >= 560 &&
+      mouseY <= 605
+    ) {
+      gameState = "menu";
+      return;
+    }
   }
 
-}
+    // ======================================
+  // MISSÕES
+  // ======================================
+  else if (gameState === "missions") {
+
+    // =========================
+    // VOLTAR
+    // =========================
+
+    if (
+      mouseX >= width / 2 - 75 &&
+      mouseX <= width / 2 + 75 &&
+      mouseY >= 620 &&
+      mouseY <= 662
+    ) {
+
+      gameState = "menu";
+
+      return;
+
+    }
+
+    // =========================
+    // BOTÕES DAS MISSÕES
+    // =========================
+
+    const cardW = 680;
+    const cardH = 125;
+
+    const startX =
+      (width - cardW) / 2;
+
+    const startY = 115;
+
+    const gap = 18;
+
+    const buttonW = 125;
+    const buttonH = 38;
+
+    for (let i = 0; i < dailyMissions.length; i++) {
+
+      const mission = dailyMissions[i];
+
+      const x = startX;
+
+      const y =
+        startY + i * (cardH + gap);
+
+      const buttonX =
+        x + cardW - buttonW - 20;
+
+      const buttonY =
+        y + 43;
+
+      // =========================
+      // RESGATAR
+      // =========================
+
+      if (
+        mouseX >= buttonX &&
+        mouseX <= buttonX + buttonW &&
+        mouseY >= buttonY &&
+        mouseY <= buttonY + buttonH
+      ) {
+
+        if (
+          mission.completed &&
+          !mission.claimed
+        ) {
+
+          claimDailyMission(
+            mission.id
+          );
+
+          return;
+
+        }
+
+      }
+
+    }
+
+  }
+
   // ======================================
   // CONFIGURAÇÕES
   // ======================================
   else if (gameState === "settings") {
 
-    const panelX = width/2 - 150;
+    const panelX = width / 2 - 150;
 
     // SLIDERS
     for (let i = 0; i < 3; i++) {
@@ -2288,8 +3301,14 @@ else if (gameState === "achievements") {
           1
         );
 
-        if (i === 0) musicVolume = value;
-        else if (i === 1) sfxVolume = value;
+        if (i === 0) {
+          musicVolume = value;
+        }
+
+        else if (i === 1) {
+          sfxVolume = value;
+        }
+
         else if (i === 2) {
           gameFPS = round(6 + value * 6);
           frameRate(gameFPS);
@@ -2297,23 +3316,30 @@ else if (gameState === "achievements") {
 
         updateAudioVolumes();
         saveSettings();
+
         return;
       }
     }
 
-    // ← VOLTAR
+    // 🔙 VOLTAR
     if (
-      mouseX >= width/2 - 100 &&
-      mouseX <= width/2 + 100 &&
+      mouseX >= width / 2 - 100 &&
+      mouseX <= width / 2 + 100 &&
       mouseY >= 560 &&
       mouseY <= 605
     ) {
 
       if (previousState === "pause") {
+
         gameState = "playing";
         isPaused = true;
-      } else {
+
+      }
+
+      else {
+
         gameState = "menu";
+
       }
 
       return;
@@ -2333,7 +3359,7 @@ else if (gameState === "achievements") {
     const startX =
       (width - (cardWidth * 3 + gap * 2)) / 2;
 
-    const startY = 110;
+    const startY = 200;
 
     // ← VOLTAR
     if (
@@ -2349,8 +3375,8 @@ else if (gameState === "achievements") {
     // Página anterior
     if (
       skinPage > 0 &&
-      mouseX >= width/2 - 130 &&
-      mouseX <= width/2 - 70 &&
+      mouseX >= width / 2 - 130 &&
+      mouseX <= width / 2 - 70 &&
       mouseY >= height - 70 &&
       mouseY <= height - 20
     ) {
@@ -2364,8 +3390,8 @@ else if (gameState === "achievements") {
 
     if (
       skinPage < totalPages - 1 &&
-      mouseX >= width/2 + 70 &&
-      mouseX <= width/2 + 130 &&
+      mouseX >= width / 2 + 70 &&
+      mouseX <= width / 2 + 130 &&
       mouseY >= height - 70 &&
       mouseY <= height - 20
     ) {
@@ -2373,10 +3399,17 @@ else if (gameState === "achievements") {
       return;
     }
 
-    // Comprar / Equipar
+    // =========================
+    // CARDS
+    // =========================
+
     const startIndex = skinPage * skinsPerPage;
+
     const endIndex =
-      min(startIndex + skinsPerPage, skinCards.length);
+      min(
+        startIndex + skinsPerPage,
+        skinCards.length
+      );
 
     let card = 0;
 
@@ -2387,9 +3420,24 @@ else if (gameState === "achievements") {
       const row = floor(card / 3);
       const col = card % 3;
 
-      const x = startX + col * (cardWidth + gap);
-      const y = startY + row * (cardHeight + gap);
+      const x =
+        startX + col * (cardWidth + gap);
 
+      const y =
+        startY + row * (cardHeight + gap);
+
+      // ⭐ FAVORITAR
+      if (
+        mouseX >= x + 178 &&
+        mouseX <= x + 202 &&
+        mouseY >= y + 8 &&
+        mouseY <= y + 32
+      ) {
+        setFavoriteSkin(skin.id);
+        return;
+      }
+
+      // BOTÃO EQUIPAR / COMPRAR
       const bx = x + 55;
       const by = y + 108;
 
@@ -2402,7 +3450,9 @@ else if (gameState === "achievements") {
 
         if (unlockedSkins.includes(skin.id)) {
           equipSkin(skin);
-        } else {
+        }
+
+        else {
           buySkin(skin);
         }
 
@@ -2416,55 +3466,70 @@ else if (gameState === "achievements") {
   // ======================================
   // PAUSA
   // ======================================
-  else if (gameState === "playing" && isPaused) {
+  else if (
+    gameState === "playing" &&
+    isPaused
+  ) {
 
-    // ▶ CONTINUAR
+    // CONTINUAR
     if (
-      mouseX >= width/2 - 100 &&
-      mouseX <= width/2 + 100 &&
+      mouseX >= width / 2 - 100 &&
+      mouseX <= width / 2 + 100 &&
       mouseY >= 225 &&
       mouseY <= 267
     ) {
+
       isPaused = false;
-      bgMusic.play();
-      return;
+comboLastUpdate = millis();
+
+bgMusic.play();
+
+return;
     }
 
-    // ↻ REINICIAR
+    // REINICIAR
     if (
-      mouseX >= width/2 - 100 &&
-      mouseX <= width/2 + 100 &&
+      mouseX >= width / 2 - 100 &&
+      mouseX <= width / 2 + 100 &&
       mouseY >= 280 &&
       mouseY <= 322
     ) {
+
       isPaused = false;
       bgMusic.stop();
+
       startGame();
+
       return;
     }
 
     // ⚙ CONFIGURAÇÕES
     if (
-      mouseX >= width/2 - 100 &&
-      mouseX <= width/2 + 100 &&
+      mouseX >= width / 2 - 100 &&
+      mouseX <= width / 2 + 100 &&
       mouseY >= 335 &&
       mouseY <= 377
     ) {
+
       previousState = "pause";
       gameState = "settings";
+
       return;
     }
 
-    // ⌂ MENU
+    // 🏠 MENU
     if (
-      mouseX >= width/2 - 100 &&
-      mouseX <= width/2 + 100 &&
+      mouseX >= width / 2 - 100 &&
+      mouseX <= width / 2 + 100 &&
       mouseY >= 390 &&
       mouseY <= 432
     ) {
+
       isPaused = false;
       bgMusic.stop();
+
       gameState = "menu";
+
       return;
     }
   }
@@ -2475,15 +3540,18 @@ else if (gameState === "achievements") {
   else if (gameState === "gameover") {
 
     if (
-      mouseX >= width/2 - 120 &&
-      mouseX <= width/2 + 120 &&
+      mouseX >= width / 2 - 120 &&
+      mouseX <= width / 2 + 120 &&
       mouseY >= 430 &&
       mouseY <= 485
     ) {
+
       startGame();
+
       return;
     }
   }
+
 }
 function drawSkins() {
 
@@ -2491,18 +3559,27 @@ function drawSkins() {
 
   const gameHeight = height - HUD_HEIGHT;
 
+  const skinsPerPage = 6;
+  const cardWidth = 210;
+  const cardHeight = 145;
+  const gap = 15;
+
+  const startX =
+    (width - (cardWidth * 3 + gap * 2)) / 2;
+
+  const startY = 200;
+
   // ======================================
   // GRID
   // ======================================
-
   stroke(25, 10, 45);
 
-  for (let x = 0; x < width; x += scaleSize) {
-    line(x, 0, x, gameHeight);
+  for (let gx = 0; gx < width; gx += scaleSize) {
+    line(gx, 0, gx, gameHeight);
   }
 
-  for (let y = 0; y < gameHeight; y += scaleSize) {
-    line(0, y, width, y);
+  for (let gy = 0; gy < gameHeight; gy += scaleSize) {
+    line(0, gy, width, gy);
   }
 
   noStroke();
@@ -2510,7 +3587,6 @@ function drawSkins() {
   // ======================================
   // BOTÃO VOLTAR
   // ======================================
-
   let backHover =
     mouseX >= 20 &&
     mouseX <= 120 &&
@@ -2524,7 +3600,6 @@ function drawSkins() {
 
   stroke("#00E5FF");
   strokeWeight(2);
-
   rect(20, 20, 100, 35, 8);
 
   noStroke();
@@ -2532,19 +3607,16 @@ function drawSkins() {
   fill(backHover ? "#FFFFFF" : "#00E5FF");
   textAlign(CENTER, CENTER);
   textSize(14);
-
   text("← VOLTAR", 70, 38);
 
   // ======================================
   // TÍTULO
   // ======================================
-
   drawingContext.shadowBlur = 20;
   drawingContext.shadowColor = "#FF00FF";
 
   fill("#FF00FF");
   textSize(38);
-
   text("SKINS", width/2, 40);
 
   drawingContext.shadowBlur = 0;
@@ -2552,45 +3624,134 @@ function drawSkins() {
   // ======================================
   // WALLET
   // ======================================
-
   let walletX = width/2 - 120;
   let walletY = 55;
 
   fill(10,18,35);
   stroke("#FFD700");
   strokeWeight(2);
-
   rect(walletX, walletY, 240, 40, 10);
 
   noStroke();
 
   fill("#FFD700");
   textSize(18);
-
   text(
     "🪙 " + coins.toLocaleString("pt-BR") + " BITS",
     width/2,
     walletY + 20
   );
+  // ======================================
+// PREVIEW DA SKIN EQUIPADA
+// ======================================
 
+const equipped = skinCards.find(s => s.id === currentSkin);
+
+const previewX = 55;
+const previewY = 105;
+const previewW = 690;
+const previewH = 80;
+
+// Painel
+fill(12, 20, 35);
+stroke("#22D3EE");
+strokeWeight(2);
+rect(previewX, previewY, previewW, previewH, 14);
+
+noStroke();
+
+// Título
+fill(140);
+textAlign(LEFT, CENTER);
+textSize(10);
+text("SKIN EQUIPADA", previewX + 18, previewY + 15);
+
+// Nome
+fill(255);
+textSize(18);
+text(equipped.name, previewX + 18, previewY + 34);
+
+// Favorita
+if (currentSkin === favoriteSkin) {
+  fill("#F59E0B");
+  textSize(11);
+  text("★ FAVORITA", previewX + 18, previewY + 55);
+}
+
+// =========================
+// PREVIEW DA COBRA VIVA
+// =========================
+push();
+
+translate(previewX + 470, previewY + 40);
+
+const wave = frameCount * 0.08;
+const headMove = sin(frameCount * 0.05) * 8;
+
+strokeCap(ROUND);
+strokeWeight(9);
+noFill();
+
+for (let i = 0; i < 7; i++) {
+
+  const px = i * 18 - 54 + headMove;
+  const py = sin(wave + i * 0.7) * 10;
+
+  // RGB animada
+  if (currentSkin === "rgbSpectrum") {
+
+    colorMode(HSB, 255);
+
+    stroke(
+      (frameCount * 4 + i * 35) % 255,
+      255,
+      255
+    );
+
+    colorMode(RGB, 255);
+
+  } else {
+
+    stroke(getSkinColor(currentSkin));
+
+  }
+
+  // Corpo
+  point(px, py);
+
+  // Cabeça brilhante
+  if (i === 6) {
+
+    const glowColor =
+      currentSkin === "rgbSpectrum"
+        ? "#FFFFFF"
+        : getSkinColor(currentSkin);
+
+    drawingContext.shadowBlur = 35;
+    drawingContext.shadowColor = glowColor;
+
+    // Aura
+    stroke(glowColor);
+    strokeWeight(18);
+    point(px, py);
+
+    // Núcleo da cabeça
+    stroke("#FFFFFF");
+    strokeWeight(10);
+    point(px, py);
+
+    drawingContext.shadowBlur = 0;
+    strokeWeight(9);
+
+  }
+
+}
+
+pop();
   // ======================================
   // CARDS
   // ======================================
-
-  let cardWidth = 210;
-  let cardHeight = 145;
-  let gap = 15;
-
-  let startX =
-    (width - (cardWidth * 3 + gap * 2)) / 2;
-
-  let startY = 110;
-
-  const skinsPerPage = 6;
-
-  const startIndex =
-    skinPage * skinsPerPage;
-
+  const startIndex = skinPage * skinsPerPage;
   const endIndex =
     min(startIndex + skinsPerPage, skinCards.length);
 
@@ -2598,34 +3759,132 @@ function drawSkins() {
 
   for (let i = startIndex; i < endIndex; i++) {
 
-    let skin = skinCards[i];
+    const skin = skinCards[i];
 
-    let row = floor(card / 3);
-    let col = card % 3;
+    const row = floor(card / 3);
+    const col = card % 3;
 
-    let x =
-      startX + col * (cardWidth + gap);
+    const x = startX + col * (cardWidth + gap);
+    const y = startY + row * (cardHeight + gap);
 
-    let y =
-      startY + row * (cardHeight + gap);
+    // Hover do card
+    const hover =
+      mouseX >= x &&
+      mouseX <= x + cardWidth &&
+      mouseY >= y &&
+      mouseY <= y + cardHeight;
 
-    drawSkinCard(
-      skin,
-      x,
-      y,
-      cardWidth,
-      cardHeight
+    drawingContext.shadowBlur = hover ? 18 : 8;
+    drawingContext.shadowColor = "#00E5FF";
+
+    fill(15,20,35);
+    stroke(
+      currentSkin === skin.id
+        ? "#00E5FF"
+        : "#334155"
+    );
+    strokeWeight(currentSkin === skin.id ? 2 : 1);
+
+    rect(x, y, cardWidth, cardHeight, 12);
+
+    noStroke();
+
+    // ⭐ FAVORITA
+    textAlign(CENTER, CENTER);
+    textSize(18);
+
+    if (skin.id === favoriteSkin) {
+      fill("#F59E0B");
+      text("★", x + 190, y + 18);
+    } else {
+      fill(110);
+      text("☆", x + 190, y + 18);
+    }
+
+    // Nome
+    fill(255);
+    textSize(14);
+    text(skin.name, x + cardWidth/2, y + 18);
+
+    // Preview
+    push();
+    translate(x + cardWidth/2, y + 58);
+
+    if (skin.id === "rgbSpectrum") {
+
+      strokeWeight(6);
+      noFill();
+
+      for (let s = -2; s <= 2; s++) {
+        stroke(
+          (frameCount * 3 + s * 50) % 255,
+          255,
+          255
+        );
+        point(s * 8, 0);
+      }
+
+    } else {
+
+      fill(getSkinColor(skin.id));
+
+      ellipse(-8, 0, 12);
+      ellipse(0, 0, 12);
+      ellipse(8, 0, 12);
+
+    }
+
+    pop();
+
+    // Status
+    textSize(11);
+
+    if (currentSkin === skin.id) {
+      fill("#22C55E");
+      text("EQUIPADA", x + cardWidth/2, y + 88);
+    } else {
+      fill(150);
+      text("DISPONÍVEL", x + cardWidth/2, y + 88);
+    }
+
+    // Botão
+    const bx = x + 55;
+    const by = y + 108;
+
+    const btnHover =
+      mouseX >= bx &&
+      mouseX <= bx + 100 &&
+      mouseY >= by &&
+      mouseY <= by + 24;
+
+    fill(
+      btnHover
+        ? color(0,229,255,80)
+        : color(35,45,65)
     );
 
-    card++;
+    stroke("#00E5FF");
+    strokeWeight(1.5);
+    rect(bx, by, 100, 24, 6);
 
+    noStroke();
+
+    fill("#FFFFFF");
+    textSize(11);
+
+    if (unlockedSkins.includes(skin.id)) {
+      text("EQUIPAR", bx + 50, by + 12);
+    } else {
+      text("COMPRAR", bx + 50, by + 12);
+    }
+
+    card++;
   }
 
   // ======================================
   // PAGINAÇÃO
   // ======================================
-
-  let totalPages =
+  const totalPages =
     ceil(skinCards.length / skinsPerPage);
 
   fill(180);
@@ -2641,26 +3900,19 @@ function drawSkins() {
   );
 
   if (skinPage > 0) {
-
     fill("#00E5FF");
     textSize(28);
-
     text("◀", width/2 - 100, height - 45);
-
   }
 
   if (skinPage < totalPages - 1) {
-
     fill("#FF00FF");
     textSize(28);
-
     text("▶", width/2 + 100, height - 45);
-
   }
 
   drawingContext.shadowBlur = 0;
   drawingContext.shadowColor = "transparent";
-
 }
 function drawSkinCard(skin, x, y, w, h) {
 
@@ -3073,6 +4325,24 @@ function drawFood() {
   drawingContext.shadowColor = "transparent";
   strokeWeight(1);
 }
+function getSkinColor(id){
+
+  switch(id){
+
+    case "neonBlue":    return "#00D9FF";
+    case "goldKing":    return "#FFD700";
+    case "toxicGreen":  return "#39FF14";
+    case "infernoRed":  return "#FF2E2E";
+    case "purpleVoid":  return "#C026FF";
+    case "cyberPulse":  return "#00F5FF";
+    case "galaxyStar":  return "#7B61FF";
+    case "matrixCode":  return "#00FF66";
+    case "shadowNinja": return "#94A3B8";
+
+    default:            return "#FFFFFF";
+  }
+
+}
 function getSkinName() {
 
   switch (currentSkin) {
@@ -3111,6 +4381,234 @@ function getSkinName() {
       return "Desconhecida";
 
   }
+
+}
+function getLevelFromScore(scoreValue) {
+
+  if (scoreValue >= 1200) return 6;
+  if (scoreValue >= 800) return 5;
+  if (scoreValue >= 500) return 4;
+  if (scoreValue >= 250) return 3;
+  if (scoreValue >= 100) return 2;
+
+  return 1;
+
+}
+
+function drawComboHUD() {
+
+  if (combo <= 0) return;
+
+  push();
+
+  const x = width - 175;
+  const y = 35;
+
+  const boxW = 150;
+  const boxH = 62;
+
+  // =========================
+  // ESTADO DO COMBO
+  // =========================
+
+  let comboColor = "#FF00D4";
+  let shadowSize = 18;
+  let pulse = 1;
+
+  if (combo >= 10) {
+
+    comboColor = "#FFD700";
+    shadowSize = 28;
+
+    pulse =
+      1 + sin(frameCount * 0.15) * 0.06;
+
+  }
+
+  else if (combo >= 5) {
+
+    comboColor = "#00F5FF";
+    shadowSize = 23;
+
+    pulse =
+      1 + sin(frameCount * 0.12) * 0.04;
+
+  }
+
+  else if (combo >= 3) {
+
+    comboColor = "#C026FF";
+    shadowSize = 20;
+
+  }
+
+  // =========================
+  // PULSE
+  // =========================
+
+  translate(
+    x + boxW / 2,
+    y + boxH / 2
+  );
+
+  scale(pulse);
+
+  translate(
+    -(boxW / 2),
+    -(boxH / 2)
+  );
+
+  // =========================
+  // PAINEL
+  // =========================
+
+  drawingContext.shadowBlur = shadowSize;
+  drawingContext.shadowColor = comboColor;
+
+  fill(12, 8, 25, 230);
+
+  stroke(comboColor);
+  strokeWeight(2);
+
+  rect(
+    0,
+    0,
+    boxW,
+    boxH,
+    10
+  );
+
+  drawingContext.shadowBlur = 0;
+
+  // =========================
+  // TÍTULO
+  // =========================
+
+  noStroke();
+
+  textAlign(CENTER, CENTER);
+
+  fill(comboColor);
+
+  textSize(11);
+  textStyle(BOLD);
+
+  if (combo >= 10) {
+
+    text(
+      "⚡ MAX COMBO",
+      boxW / 2,
+      15
+    );
+
+  }
+
+  else if (combo >= 5) {
+
+    text(
+      "⚡ OVERDRIVE",
+      boxW / 2,
+      15
+    );
+
+  }
+
+  else if (combo >= 3) {
+
+    text(
+      "🔥 COMBO",
+      boxW / 2,
+      15
+    );
+
+  }
+
+  else {
+
+    text(
+      "🔥 COMBO",
+      boxW / 2,
+      15
+    );
+
+  }
+
+  // =========================
+  // NÚMERO
+  // =========================
+
+  fill("#FFFFFF");
+
+  textSize(
+    combo >= 10
+      ? 24
+      : 22
+  );
+
+  text(
+    "x" + combo,
+    boxW / 2,
+    36
+  );
+
+  // =========================
+  // BARRA
+  // =========================
+
+  const progress =
+    comboTimer / comboTimeLimit;
+
+  fill(30, 25, 45);
+
+  rect(
+    15,
+    51,
+    boxW - 30,
+    5,
+    3
+  );
+
+  if (progress > 0) {
+
+    drawingContext.shadowBlur = 8;
+    drawingContext.shadowColor = comboColor;
+
+    fill(comboColor);
+
+    rect(
+      15,
+      51,
+      (boxW - 30) * progress,
+      5,
+      3
+    );
+
+    drawingContext.shadowBlur = 0;
+
+  }
+
+  pop();
+
+}
+function getComboMultiplier() {
+
+  if (combo <= 1) {
+    return 1;
+  }
+
+  if (combo === 2) {
+    return 1.10;
+  }
+
+  if (combo === 3 || combo === 4) {
+    return 1.20;
+  }
+
+  if (combo >= 5 && combo <= 9) {
+    return 1.30;
+  }
+
+  return 1.50;
 
 }
 
@@ -3196,17 +4694,26 @@ function drawHUD() {
 }
 function updateLevel() {
 
-  let newLevel = floor(score / 100) + 1;
+  const newLevel =
+    getLevelFromScore(score);
 
   if (newLevel <= level) return;
 
   level = newLevel;
 
-  // Velocidade progressiva
-  let speed = min(9 + (level - 1), 16);
+  // =========================
+  // VELOCIDADE PROGRESSIVA
+  // =========================
+
+  let speed =
+    min(9 + (level - 1), 16);
+
   frameRate(speed);
 
-  // Novo obstáculo a cada fase
+  // =========================
+  // NOVO OBSTÁCULO
+  // =========================
+
   createObstacle();
 
 }
