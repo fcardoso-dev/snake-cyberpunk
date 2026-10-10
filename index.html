@@ -1,42 +1,70 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<head>
+    <title>Snake Cyberpunk | Jogue a Cobrinha Online</title>
 
-<meta charset="UTF-8">
+    <meta
+      name="description"
+      content="Jogue Snake Cyberpunk gratuitamente no navegador. Supere seus recordes, desbloqueie skins e entre na arena neon!"
+    />
 
-<meta
-name="viewport"
-content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080b12" />
+    <meta name="robots" content="index, follow" />
 
-<title>Snake Cyberpunk 2.0</title>
+    <link rel="stylesheet" href="style.css" />
 
-<link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.13/lib/p5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.13/lib/addons/p5.sound.min.js"></script>
+  </head>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.js"></script>
+  <body>
+    <header class="site-header">
+      <a class="logo" href="./">SNAKE<span>CYBERPUNK</span></a>
 
-</head>
+      <span class="header-tag">NEON ARCADE</span>
+    </header>
 
-<body>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">A LENDA ESTÁ DE VOLTA</p>
 
-<script src="save.js"></script>
+        <h1>ENTRE NA <span>ARENA NEON</span></h1>
 
-<script src="skins.js"></script>
+        <p class="hero-description">
+          Uma cobra, um desafio e recordes esperando para serem quebrados.
+          Você está pronto?
+        </p>
 
-<script src="utils.js"></script>
+        <a class="play-button" href="#game">JOGAR AGORA</a>
+      </section>
 
-<script src="food.js"></script>
+      <section class="game-section" id="game">
+        <div class="section-heading">
+          <span class="status-dot"></span>
+          <h2>ÁREA DE JOGO</h2>
+        </div>
 
-<script src="obstacles.js"></script>
+        <div id="game-container"></div>
+      </section>
 
-<script src="shield.js"></script>
+      <section class="about-section">
+        <h2>CLÁSSICO NA ESSÊNCIA. NEON NA ALMA.</h2>
 
-<script src="hud.js"></script>
+        <p>
+          Snake Cyberpunk reinventa o clássico jogo da cobrinha com
+          uma atmosfera futurista, efeitos sonoros, skins especiais
+          e desafios para quem busca superar o próprio recorde.
+        </p>
+      </section>
+    </main>
 
-<script src="snake.js"></script>
+    <footer class="site-footer">
+      <p>© 2026 Snake Cyberpunk. Feito para quem joga até o último pixel.</p>
+    </footer>
 
-<script src="sketch.js"></script>
-
-</body>
-
+    <script src="sketch.js"></script>
+  </body>
 </html>
