@@ -1,34 +1,283 @@
-html,
-body{
 
-margin:0;
+/* ========================================
+   SNAKE CYBERPUNK | ESTILO PRINCIPAL
+   ======================================== */
 
-padding:0;
-
-background:#070714;
-
-overflow:hidden;
-
-display:flex;
-
-justify-content:center;
-
-align-items:center;
-
-height:100vh;
-
-font-family:Arial,Helvetica,sans-serif;
-
+:root {
+  --bg: #080b12;
+  --panel: #0e1420;
+  --tiffany: #62f5e2;
+  --red: #ff405d;
+  --text: #f3f6ff;
+  --muted: #9ba9bc;
+  --border: rgba(98, 245, 226, 0.18);
 }
 
-canvas{
+* {
+  box-sizing: border-box;
+}
 
-border:2px solid #00e5ff;
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
 
-box-shadow:
-0 0 20px #00e5ff,
-0 0 50px #00e5ff;
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(18, 70, 83, 0.18),
+      transparent 55%
+    ),
+    var(--bg);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
 
-border-radius:12px;
+/* CABEÇALHO */
 
+.site-header {
+  min-height: 76px;
+  padding: 18px 7%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(8, 11, 18, 0.94);
+}
+
+.logo {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.logo span {
+  color: var(--tiffany);
+  margin-left: 7px;
+}
+
+.header-tag {
+  color: var(--tiffany);
+  font-size: 0.72rem;
+  letter-spacing: 3px;
+  font-weight: 700;
+}
+
+/* APRESENTAÇÃO */
+
+.hero {
+  width: min(100% - 32px, 900px);
+  margin: 0 auto;
+  padding: 82px 0 64px;
+  text-align: center;
+}
+
+.eyebrow {
+  color: var(--red);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 4px;
+}
+
+.hero h1 {
+  margin: 18px 0;
+  font-size: clamp(2.2rem, 6vw, 4.5rem);
+  line-height: 1.08;
+  font-weight: 900;
+  letter-spacing: -2px;
+}
+
+.hero h1 span {
+  display: block;
+  color: var(--tiffany);
+  text-shadow: 0 0 28px rgba(98, 245, 226, 0.18);
+}
+
+.hero-description {
+  max-width: 570px;
+  margin: 0 auto 30px;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+/* BOTÃO JOGAR */
+
+.play-button {
+  display: inline-block;
+  padding: 16px 32px;
+  border: 1px solid var(--tiffany);
+  border-radius: 5px;
+  background: var(--tiffany);
+  color: #061014;
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-decoration: none;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.play-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 28px rgba(98, 245, 226, 0.25);
+}
+
+.play-button:focus-visible {
+  outline: 3px solid var(--red);
+  outline-offset: 5px;
+}
+
+/* ÁREA DO JOGO */
+
+.game-section {
+  width: min(100% - 32px, 900px);
+  margin: 0 auto;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(14, 20, 32, 0.88);
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.22);
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 22px;
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tiffany);
+  box-shadow: 0 0 12px var(--tiffany);
+}
+
+#game-container {
+  width: 100%;
+  min-height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(98, 245, 226, 0.12);
+  border-radius: 6px;
+  background: #05030f;
+}
+
+#game-container canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  box-shadow: 0 0 40px rgba(0, 229, 255, 0.12);
+}
+
+.loading-message {
+  padding: 30px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* SOBRE O JOGO */
+
+.about-section {
+  width: min(100% - 32px, 720px);
+  margin: 0 auto;
+  padding: 76px 0;
+  text-align: center;
+}
+
+.about-section h2 {
+  color: var(--tiffany);
+  font-size: clamp(1.2rem, 3vw, 1.7rem);
+  letter-spacing: 1px;
+}
+
+.about-section p {
+  color: var(--muted);
+  font-size: 0.98rem;
+  line-height: 1.9;
+}
+
+/* RODAPÉ */
+
+.site-footer {
+  padding: 25px 16px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.78rem;
+  line-height: 1.7;
+}
+
+/* CELULARES */
+
+@media (max-width: 600px) {
+  .site-header {
+    min-height: 66px;
+    padding: 16px 20px;
+  }
+
+  .logo {
+    font-size: 0.85rem;
+  }
+
+  .logo span {
+    margin-left: 4px;
+  }
+
+  .header-tag {
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+  }
+
+  .hero {
+    padding: 58px 0 44px;
+  }
+
+  .hero h1 {
+    letter-spacing: -1px;
+  }
+
+  .hero-description {
+    font-size: 0.9rem;
+  }
+
+  .game-section {
+    padding: 15px;
+  }
+
+  .about-section {
+    padding: 54px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
 }
