@@ -17,7 +17,7 @@ A retro arcade game reimagined with a cyberpunk aesthetic, built in **JavaScript
 ## 🎮 Play Now
 
 Play in your browser:
-https://fcardoso-dev.github.io/snake-cyberpunk/
+[https://fcardoso-dev.github.io/snake-cyberpunk/](https://github.com/fcardoso-dev/snake-cyberpunk.git)
 ---
 
 Developed by **Fernando Cardoso**.
